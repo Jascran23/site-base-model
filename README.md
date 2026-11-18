@@ -10,8 +10,8 @@ Projeto-base reutilizável: **uma instalação independente por cliente** (site,
 | 1 | Arquitetura, estrutura, banco (migrations + seeds) | ✅ pronta e testada |
 | 2 | Autenticação e permissões | ✅ pronta e testada |
 | 3 | Dashboard administrativo | ✅ base pronta (contagens, recentes, atividades) |
-| 4 | Biblioteca de imagens | ⚠️ implementação concluída; aceite manual pendente |
-| 5 | Páginas | ⏳ tabelas prontas |
+| 4 | Biblioteca de imagens | ✅ pronta e testada |
+| 5 | Páginas | ✅ pronta e testada |
 | 6 | Editor de seções | ⏳ |
 | 7 | Tema | ⏳ tokens padrão no seed |
 | 8 | Site público dinâmico | ⏳ placeholder |
@@ -25,12 +25,13 @@ apps/api/src
   db/                  pool, migrate.ts, seed.ts, migrations/*.sql
   lib/                 permissions.ts (catálogo), password, audit, errors, defaults
   middleware/          auth (sessão, permissões, CSRF), error
-  modules/             auth · users · dashboard · media
+  modules/             auth · users · dashboard · media · pages
   scripts/create-master.ts
 apps/web/src
   admin/               layout, páginas do painel e biblioteca de imagens
   public/              site público (Etapa 8)
   lib/                 api (fetch + CSRF), auth (contexto)
+packages/shared        schemas e tipos compartilhados entre API e web
 storage/uploads        arquivos enviados (fora do webroot)
 docs/INSTALACAO.md
 ```

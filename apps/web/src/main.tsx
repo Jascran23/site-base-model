@@ -8,6 +8,9 @@ import { Login } from './admin/pages/Login';
 import { Dashboard } from './admin/pages/Dashboard';
 import { Users } from './admin/pages/Users';
 import { Media } from './admin/pages/Media';
+import { Pages } from './admin/pages/Pages';
+import { PageSettings } from './admin/pages/PageSettings';
+import { PagePreview } from './admin/pages/PagePreview';
 import { ComingSoon } from './admin/pages/ComingSoon';
 import { PublicHome } from './public/PublicHome';
 
@@ -20,10 +23,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/admin/login" element={<Login />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
-            <Route path="paginas" element={<ComingSoon title="Páginas" stage="Etapa 5" />} />
+            <Route path="paginas" element={<Pages />} />
+            <Route path="paginas/:id" element={<PageSettings />} />
+            <Route path="preview/:token" element={<PagePreview />} />
             <Route path="imagens" element={<Media />} />
             <Route path="aparencia" element={<ComingSoon title="Aparência" stage="Etapa 7" />} />
-            <Route path="modelos" element={<ComingSoon title="Modelos" stage="Etapa 5" />} />
+            <Route path="modelos" element={<ComingSoon title="Modelos" stage="Etapa 6" />} />
             <Route path="usuarios" element={<Users />} />
             <Route path="configuracoes" element={<ComingSoon title="Configurações" stage="Etapa 9" />} />
             <Route path="seo" element={<ComingSoon title="SEO" stage="Etapa 9" />} />

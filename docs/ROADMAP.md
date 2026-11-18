@@ -2,17 +2,19 @@
 
 Como usar com o Codex: **uma etapa por vez, uma branch por etapa** (`etapa-04-imagens`). Cole o prompt da etapa, revise o diff, rode os critérios de aceite e só então faça merge. Leia sempre `AGENTS.md` antes (o Codex o lê sozinho).
 
-Estado atual: Etapas 1, 2 e 3 prontas (banco, auth, permissões, dashboard base). A implementação da Etapa 4 está concluída; faltam os critérios de aceite que dependem de executar a API com MySQL e uma sessão de cliente. A migration `001_init.sql` não foi alterada. Todas as tabelas das próximas etapas **já existem** nela; mudanças de schema entram em migrations novas (`002_...sql`), nunca editando a 001.
+Estado atual: Etapas 1 a 5 prontas (banco, auth, permissões, dashboard, biblioteca de imagens e gerenciamento de páginas). Etapas 4 e 5 foram validadas com MySQL e sessões de cliente. A migration `001_init.sql` não foi alterada. Todas as tabelas das próximas etapas **já existem** nela; mudanças de schema entram em migrations novas (`002_...sql`), nunca editando a 001.
 
-Decisão D1 para esta execução: `packages/shared` fica para a Etapa 5, quando schemas e tipos passam a ser compartilhados entre API e front. A Etapa 4 não precisa desse pacote.
+Decisão D1: `packages/shared` foi criado na Etapa 5 com o schema genérico de rascunho e tipos de página compartilhados entre API e web. O registry de seções será implementado na Etapa 6.
 
-Verificação da Etapa 4: `typecheck` de API e web e `npm run build` passam. Pendente validar em ambiente com banco: rejeição de arquivo falso, resposta 413, exclusão 409/remoção dos arquivos, substituição preservando o ID e permissão de upload (403).
+Verificação da Etapa 4: typecheck da API e da web e `npm run build` passam. Aceites manuais passaram: arquivo falso rejeitado (400), arquivo acima do limite (413), exclusão de imagem em uso bloqueada (409), exclusão sem uso remove imagem e miniatura, substituição preserva o ID e remove os arquivos antigos, e usuário sem `media.upload` recebe 403. Os registros e arquivos temporários do teste foram removidos.
+
+Verificação da Etapa 5: typecheck da API e da web e `npm run build` passam. Aceites manuais passaram: slug reservado (400) e duplicado (409); publicar preserva o rascunho e salvar novo rascunho não altera a versão publicada; definir página inicial desmarca a anterior; usuário sem `pages.publish` salva rascunho mas recebe 403 ao publicar; exclusão limpa usos de mídia. Preview assinado expira em 15 minutos, cópia inicia como rascunho independente, e SEO exige `seo.edit` e `media.select` para associar imagem. As contas e registros temporários foram removidos.
 
 ## Decisões a tomar antes de começar
 
 | # | Decisão | Recomendação | Afeta |
 |---|---|---|---|
-| D1 | Pacote `packages/shared` (schemas Zod das seções, tipos, gerador de CSS vars) | Criar na Etapa 4 ou 5; front e API validam com o mesmo schema | 5, 6, 7, 8 |
+| D1 | Pacote `packages/shared` (schemas Zod das seções, tipos, gerador de CSS vars) | ✅ Pacote criado na Etapa 5 com schema genérico de rascunho e tipos de página; registry de seções segue na Etapa 6 | 5, 6, 7, 8 |
 | D2 | Renderização do site público | SSR com Vite SSR dentro do mesmo processo Node da API | 8, 9 |
 | D3 | Header e rodapé: por página ou globais? | Globais, guardados em `site_settings` (`layout`) | 6, 8 |
 | D4 | Drag-and-drop do editor | `@dnd-kit` (acessível, sem dependência externa em runtime) | 6 |

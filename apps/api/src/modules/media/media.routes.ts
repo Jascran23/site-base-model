@@ -147,14 +147,16 @@ mediaRouter.post('/:id/replace', requirePermission('media.upload'), receiveImage
   const [rows] = await pool.query<RowDataPacket[]>('SELECT stored_name, thumb_name FROM media WHERE id=?', [id]);
   if (!rows[0]) throw new HttpError(404, 'Imagem não encontrada.');
   const output = await processImage(req.file!.buffer);
+  const originalName = req.file!.originalname.replace(/[\\/\0-\x1f]/g, '').slice(0, 255) || 'imagem';
   try {
-    const originalName = req.file!.originalname.replace(/[\\/\0-\x1f]/g, '').slice(0, 255) || 'imagem';
-    await pool.query('UPDATE media SET original_name=?, stored_name=?, mime_type=?, size_bytes=?, width=?, height=?, thumb_name=? WHERE id=?',
+    const [result] = await pool.query<ResultSetHeader>('UPDATE media SET original_name=?, stored_name=?, mime_type=?, size_bytes=?, width=?, height=?, thumb_name=? WHERE id=?',
       [originalName, output.storedName, 'image/webp', output.sizeBytes, output.width, output.height, output.thumbName, id]);
-    await removeImageFiles(rows[0].stored_name, rows[0].thumb_name);
-    await audit(req, 'media.replace', 'media', id, { original_name: originalName });
-    res.json({ ok: true, ...output, url: `/uploads/${output.storedName}`, thumbnail_url: `/uploads/${output.thumbName}` });
+    if (!result.affectedRows) throw new HttpError(404, 'Imagem não encontrada.');
   } catch (error) { await removeImageFiles(output.storedName, output.thumbName); throw error; }
+  await audit(req, 'media.replace', 'media', id, { original_name: originalName });
+  try { await removeImageFiles(rows[0].stored_name, rows[0].thumb_name); }
+  catch (error) { console.error('Não foi possível limpar os arquivos anteriores da imagem substituída.', error); }
+  res.json({ ok: true, ...output, url: `/uploads/${output.storedName}`, thumbnail_url: `/uploads/${output.thumbName}` });
 }));
 
 mediaRouter.delete('/:id', requirePermission('media.delete'), asyncHandler(async (req, res) => {

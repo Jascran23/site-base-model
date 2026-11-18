@@ -10,9 +10,10 @@
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
     "install:master": "tsx src/scripts/create-master.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "npm run build -w @cms/shared && tsc --noEmit"
   },
   "dependencies": {
+    "@cms/shared": "*",
     "argon2": "^0.41.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
