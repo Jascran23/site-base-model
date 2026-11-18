@@ -1,6 +1,7 @@
 export { pageDraftSchema, sectionInstanceSchema } from './sections/index.js';
 export type { PageDraft } from './sections/index.js';
 export * from './sections/index.js';
+export * from './theme.js';
 
 export type PageStatus = 'draft' | 'published';
 export interface PageSummary {

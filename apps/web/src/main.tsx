@@ -12,6 +12,7 @@ import { Pages } from './admin/pages/Pages';
 import { PageSettings } from './admin/pages/PageSettings';
 import { PagePreview } from './admin/pages/PagePreview';
 import { Templates } from './admin/pages/Templates';
+import { Appearance } from './admin/pages/Appearance';
 import { ComingSoon } from './admin/pages/ComingSoon';
 import { PublicHome } from './public/PublicHome';
 
@@ -28,7 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="paginas/:id" element={<PageSettings />} />
             <Route path="preview/:token" element={<PagePreview />} />
             <Route path="imagens" element={<Media />} />
-            <Route path="aparencia" element={<ComingSoon title="Aparência" stage="Etapa 7" />} />
+            <Route path="aparencia" element={<Appearance />} />
             <Route path="modelos" element={<Templates />} />
             <Route path="usuarios" element={<Users />} />
             <Route path="configuracoes" element={<ComingSoon title="Configurações" stage="Etapa 9" />} />

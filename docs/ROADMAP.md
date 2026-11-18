@@ -2,11 +2,13 @@
 
 Como usar com o Codex: **uma etapa por vez, uma branch por etapa** (`etapa-04-imagens`). Cole o prompt da etapa, revise o diff, rode os critérios de aceite e só então faça merge. Leia sempre `AGENTS.md` antes (o Codex o lê sozinho).
 
-Estado atual: Etapas 1 a 6 prontas (banco, auth, permissões, dashboard, biblioteca de imagens, páginas, editor e modelos). Etapas 4 e 5 foram validadas com MySQL e sessões de cliente. A Etapa 6 implementa quatro seções-base (hero, about, services, contact), validação no servidor, editor, preview e modelos genéricos. As demais seções aguardam validação do padrão. A migration `001_init.sql` não foi alterada.
+Estado atual: Etapas 1 a 7 prontas (banco, auth, permissões, dashboard, biblioteca de imagens, páginas, editor, modelos e tema). Etapas 4 e 5 foram validadas com MySQL e sessões de cliente. A Etapa 6 implementa quatro seções-base (hero, about, services, contact), validação no servidor, editor, preview e modelos genéricos. A Etapa 7 implementa tema em rascunho/publicado, acesso por grupos, preview, CSS vars e identidade visual. A migration `001_init.sql` não foi alterada.
 
 Decisão D1: `packages/shared` foi criado na Etapa 5 com o schema genérico de rascunho e tipos de página compartilhados entre API e web. O registry foi concluído na Etapa 6.
 
 Implementação da Etapa 6: `packages/shared/sections` mantém o registry e os descritores de campos; o PUT do rascunho valida tipo, versão e props, verifica permissões de seção/campo e exige `baseVersionId`; a interface usa autosave e `@dnd-kit`; `modules/templates` oferece CRUD protegido e cópia de rascunho para modelo. Seeds criam modelos genéricos de páginas para advocacia, saúde e institucional. Nenhuma migration foi necessária. Para aplicar os modelos em uma instalação existente, rode `npm run seed`.
+
+Implementação da Etapa 7: `packages/shared/theme.ts` define tokens, schema Zod e `themeToCssVars`; `modules/theme` salva rascunho, publica, restaura padrão e deixa o master definir grupos liberados ao cliente. Assets registram uso de mídia. O preview do painel e a página inicial aplicam as variáveis do tema publicado. O seed registra `theme_client_groups` vazio por padrão; rode `npm run seed` em instalações existentes.
 
 Verificação da Etapa 4: typecheck da API e da web e `npm run build` passam. Aceites manuais passaram: arquivo falso rejeitado (400), arquivo acima do limite (413), exclusão de imagem em uso bloqueada (409), exclusão sem uso remove imagem e miniatura, substituição preserva o ID e remove os arquivos antigos, e usuário sem `media.upload` recebe 403. Os registros e arquivos temporários do teste foram removidos.
 
@@ -16,7 +18,7 @@ Verificação da Etapa 5: typecheck da API e da web e `npm run build` passam. Ac
 
 | # | Decisão | Recomendação | Afeta |
 |---|---|---|---|
-| D1 | Pacote `packages/shared` (schemas Zod das seções, tipos, gerador de CSS vars) | ✅ Pacote criado na Etapa 5 com schema genérico de rascunho e tipos de página; registry de seções segue na Etapa 6 | 5, 6, 7, 8 |
+| D1 | Pacote `packages/shared` (schemas Zod das seções, tipos, gerador de CSS vars) | ✅ Criado na Etapa 5; registry concluído na Etapa 6 e `themeToCssVars` na Etapa 7 | 5, 6, 7, 8 |
 | D2 | Renderização do site público | SSR com Vite SSR dentro do mesmo processo Node da API | 8, 9 |
 | D3 | Header e rodapé: por página ou globais? | Globais, guardados em `site_settings` (`layout`) | 6, 8 |
 | D4 | Drag-and-drop do editor | `@dnd-kit` (acessível, sem dependência externa em runtime) | 6 |
@@ -117,7 +119,7 @@ Componentes iniciais: header, hero, about, services, specialties, team, differen
 
 ---
 
-## Etapa 7. Personalização de tema (≈ 1,5 semana)
+## Etapa 7. Personalização de tema — ✅ implementada
 
 **Objetivo:** aparência por variáveis CSS, com rascunho, preview e publicação.
 
