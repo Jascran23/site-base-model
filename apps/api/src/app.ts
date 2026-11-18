@@ -9,6 +9,7 @@ import { usersRouter } from './modules/users/users.routes.js';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes.js';
 import { mediaRouter } from './modules/media/media.routes.js';
 import { pagesRouter, previewRouter } from './modules/pages/pages.routes.js';
+import { templatesRouter } from './modules/templates/templates.routes.js';
 import { env } from './config/env.js';
 import path from 'node:path';
 
@@ -29,6 +30,7 @@ export function createApp() {
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/media', mediaRouter);
   app.use('/api/pages', pagesRouter);
+  app.use('/api/templates', templatesRouter);
   app.use('/api/preview', previewRouter);
 
   // Arquivos publicados: nomes UUID gerados pelo servidor, sem listagem nem execução.

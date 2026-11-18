@@ -1,0 +1,15 @@
+import type { PageDraft, SectionInstance } from '@cms/shared';
+
+export function SectionRenderer({ section, mediaUrls = {} }: { section: SectionInstance; mediaUrls?: Record<number, string> }) {
+  if (section.hidden) return null;
+  const p = section.props;
+  const image = typeof p.imageId === 'number' ? mediaUrls[p.imageId] : undefined;
+  const wrap = 'px-6 py-12 md:px-12';
+  if (section.type === 'hero') return <section className={`${wrap} grid gap-8 md:grid-cols-2`} style={{ backgroundColor: String(p.backgroundColor) }}><div><p className="text-sm uppercase tracking-widest">{String(p.eyebrow)}</p><h1 className="mt-3 text-4xl font-bold">{String(p.title)}</h1><p className="mt-4 whitespace-pre-wrap">{String(p.body)}</p><a className="mt-6 inline-block rounded bg-slate-900 px-5 py-3 text-white" href={String((p.primaryButton as {url:string}).url)}>{String((p.primaryButton as {label:string}).label)}</a></div>{image && <img src={image} alt="" className="max-h-96 w-full rounded-xl object-cover" />}</section>;
+  if (section.type === 'about') return <section className={`${wrap} grid gap-8 md:grid-cols-2`} style={{ backgroundColor: String(p.backgroundColor) }}><div><p className="text-sm uppercase tracking-widest">{String(p.eyebrow)}</p><h2 className="mt-2 text-3xl font-bold">{String(p.title)}</h2><p className="mt-4 whitespace-pre-wrap">{String(p.body)}</p><ul className="mt-5 space-y-3">{(p.highlights as {title:string;description:string}[]).map((x,i)=><li key={i}><strong>{x.title}</strong><p>{x.description}</p></li>)}</ul></div>{image && <img src={image} alt="" className="max-h-96 w-full rounded-xl object-cover" />}</section>;
+  if (section.type === 'services') return <section className={wrap} style={{ backgroundColor: String(p.backgroundColor) }}><p className="text-sm uppercase tracking-widest">{String(p.eyebrow)}</p><h2 className="mt-2 text-3xl font-bold">{String(p.title)}</h2><p className="mt-3">{String(p.intro)}</p><div className="mt-6 grid gap-4 md:grid-cols-3">{(p.items as {title:string;description:string}[]).map((x,i)=><article key={i} className="rounded-xl bg-white/80 p-5"><h3 className="font-semibold">{x.title}</h3><p className="mt-2">{x.description}</p></article>)}</div></section>;
+  if (section.type === 'contact') return <section className={`${wrap} text-center`} style={{ backgroundColor: String(p.backgroundColor) }}><p className="text-sm uppercase tracking-widest">{String(p.eyebrow)}</p><h2 className="mt-2 text-3xl font-bold">{String(p.title)}</h2><p className="mt-3">{String(p.body)}</p><a className="mt-6 inline-block rounded bg-slate-900 px-5 py-3 text-white" href={String((p.button as {url:string}).url)}>{String((p.button as {label:string}).label)}</a></section>;
+  return null;
+}
+
+export function SectionPreview({ content, mediaUrls = {} }: { content: PageDraft; mediaUrls?: Record<number,string> }) { return <div className="overflow-hidden rounded-xl border bg-white text-slate-800">{content.sections.map((section)=><SectionRenderer key={section.id} section={section} mediaUrls={mediaUrls} />)}</div>; }

@@ -11,6 +11,7 @@ import { Media } from './admin/pages/Media';
 import { Pages } from './admin/pages/Pages';
 import { PageSettings } from './admin/pages/PageSettings';
 import { PagePreview } from './admin/pages/PagePreview';
+import { Templates } from './admin/pages/Templates';
 import { ComingSoon } from './admin/pages/ComingSoon';
 import { PublicHome } from './public/PublicHome';
 
@@ -28,7 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="preview/:token" element={<PagePreview />} />
             <Route path="imagens" element={<Media />} />
             <Route path="aparencia" element={<ComingSoon title="Aparência" stage="Etapa 7" />} />
-            <Route path="modelos" element={<ComingSoon title="Modelos" stage="Etapa 6" />} />
+            <Route path="modelos" element={<Templates />} />
             <Route path="usuarios" element={<Users />} />
             <Route path="configuracoes" element={<ComingSoon title="Configurações" stage="Etapa 9" />} />
             <Route path="seo" element={<ComingSoon title="SEO" stage="Etapa 9" />} />

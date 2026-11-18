@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "migrate": "tsx src/db/migrate.ts",
-    "seed": "tsx src/db/seed.ts",
+    "seed": "npm run build -w @cms/shared && tsx src/db/seed.ts",
     "install:master": "tsx src/scripts/create-master.ts",
     "typecheck": "npm run build -w @cms/shared && tsc --noEmit"
   },

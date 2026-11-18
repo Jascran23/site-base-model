@@ -2,9 +2,11 @@
 
 Como usar com o Codex: **uma etapa por vez, uma branch por etapa** (`etapa-04-imagens`). Cole o prompt da etapa, revise o diff, rode os critérios de aceite e só então faça merge. Leia sempre `AGENTS.md` antes (o Codex o lê sozinho).
 
-Estado atual: Etapas 1 a 5 prontas (banco, auth, permissões, dashboard, biblioteca de imagens e gerenciamento de páginas). Etapas 4 e 5 foram validadas com MySQL e sessões de cliente. A migration `001_init.sql` não foi alterada. Todas as tabelas das próximas etapas **já existem** nela; mudanças de schema entram em migrations novas (`002_...sql`), nunca editando a 001.
+Estado atual: Etapas 1 a 6 prontas (banco, auth, permissões, dashboard, biblioteca de imagens, páginas, editor e modelos). Etapas 4 e 5 foram validadas com MySQL e sessões de cliente. A Etapa 6 implementa quatro seções-base (hero, about, services, contact), validação no servidor, editor, preview e modelos genéricos. As demais seções aguardam validação do padrão. A migration `001_init.sql` não foi alterada.
 
-Decisão D1: `packages/shared` foi criado na Etapa 5 com o schema genérico de rascunho e tipos de página compartilhados entre API e web. O registry de seções será implementado na Etapa 6.
+Decisão D1: `packages/shared` foi criado na Etapa 5 com o schema genérico de rascunho e tipos de página compartilhados entre API e web. O registry foi concluído na Etapa 6.
+
+Implementação da Etapa 6: `packages/shared/sections` mantém o registry e os descritores de campos; o PUT do rascunho valida tipo, versão e props, verifica permissões de seção/campo e exige `baseVersionId`; a interface usa autosave e `@dnd-kit`; `modules/templates` oferece CRUD protegido e cópia de rascunho para modelo. Seeds criam modelos genéricos de páginas para advocacia, saúde e institucional. Nenhuma migration foi necessária. Para aplicar os modelos em uma instalação existente, rode `npm run seed`.
 
 Verificação da Etapa 4: typecheck da API e da web e `npm run build` passam. Aceites manuais passaram: arquivo falso rejeitado (400), arquivo acima do limite (413), exclusão de imagem em uso bloqueada (409), exclusão sem uso remove imagem e miniatura, substituição preserva o ID e remove os arquivos antigos, e usuário sem `media.upload` recebe 403. Os registros e arquivos temporários do teste foram removidos.
 
@@ -82,7 +84,7 @@ Verificação da Etapa 5: typecheck da API e da web e `npm run build` passam. Ac
 
 ---
 
-## Etapa 6. Editor de seções e modelos (≈ 3 semanas, a maior)
+## Etapa 6. Editor de seções e modelos — ✅ implementada (4 seções de referência)
 
 **Objetivo:** editor por componentes reutilizáveis, extensível sem reescrever o editor.
 

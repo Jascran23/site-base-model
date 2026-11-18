@@ -101,12 +101,14 @@ export function Pages() {
 function CreatePage({ onClose, onCreated }: { onClose: () => void; onCreated: (id: number) => void }) {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
+  const [templateId,setTemplateId]=useState('');const [templates,setTemplates]=useState<{id:number;name:string;segment:string}[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  useEffect(()=>{void api<{templates:{id:number;name:string;segment:string}[]}>('/templates/available').then((x)=>setTemplates(x.templates)).catch(()=>{});},[]);
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      const result = await api<{ id: number }>('/pages', { method: 'POST', body: { title, ...(slug.trim() ? { slug } : {}) } });
+      const result = await api<{ id: number }>('/pages', { method: 'POST', body: { title, ...(slug.trim() ? { slug } : {}), ...(templateId?{template_id:Number(templateId)}:{}) } });
       onCreated(result.id);
     } catch (e) {
       setError(e instanceof ApiError && e.fields?.length ? e.fields.map((field) => field.message).join(' ') : e instanceof Error ? e.message : 'Não foi possível criar a página.');
@@ -114,9 +116,10 @@ function CreatePage({ onClose, onCreated }: { onClose: () => void; onCreated: (i
   }
   return <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/50 p-4">
     <form onSubmit={submit} className="panel my-8 w-full max-w-lg space-y-4 p-6">
-      <div><h2 className="text-lg font-semibold">Criar página</h2><p className="mt-1 text-sm text-ink-500">A página começa como rascunho. O editor de seções será adicionado na próxima etapa.</p></div>
+      <div><h2 className="text-lg font-semibold">Criar página</h2><p className="mt-1 text-sm text-ink-500">A página começa como rascunho e pode partir de um modelo.</p></div>
       <label className="block"><span className="label">Título</span><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} minLength={2} maxLength={190} required autoFocus /></label>
       <label className="block"><span className="label">Slug (opcional)</span><input className="input" value={slug} onChange={(e) => setSlug(e.target.value)} maxLength={190} placeholder="gerado a partir do título" /><span className="mt-1 block text-xs text-ink-500">Será convertido para minúsculas e sem acentos.</span></label>
+      <label className="block"><span className="label">Modelo</span><select className="input" value={templateId} onChange={(e)=>setTemplateId(e.target.value)}><option value="">Página em branco</option>{templates.map((x)=><option key={x.id} value={x.id}>{x.name} · {x.segment}</option>)}</select></label>
       {error && <p role="alert" className="rounded-md bg-red-50 p-2 text-sm text-red-800">{error}</p>}
       <div className="flex justify-end gap-2"><button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button><button className="btn-primary" disabled={busy}>{busy ? 'Criando…' : 'Criar rascunho'}</button></div>
     </form>

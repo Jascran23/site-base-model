@@ -1,0 +1,15 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { api, ApiError } from '../../lib/api';
+import { sectionRegistry } from '@cms/shared';
+
+type Template={id:number;segment:string;name:string;kind:'page'|'section';content:unknown};
+export function Templates(){
+ const [items,setItems]=useState<Template[]>([]);const [error,setError]=useState('');const [busy,setBusy]=useState(false);
+ const load=useCallback(async()=>{try{const result=await api<{templates:Template[]}>('/templates');setItems(result.templates);setError('');}catch(e){setError(e instanceof Error?e.message:'Não foi possível carregar os modelos.');}},[]);
+ useEffect(()=>{void load();},[load]);
+ async function create(){const name=window.prompt('Nome do modelo de seção');if(!name?.trim())return;const type=window.prompt('Tipo de seção: hero, about, services ou contact','hero');if(!type)return;setBusy(true);try{const def=sectionRegistry[type as keyof typeof sectionRegistry];if(!def)throw new Error('Tipo de seção desconhecido.');await api('/templates',{method:'POST',body:{segment:'custom',name,kind:'section',content:{id:crypto.randomUUID(),type,schemaVersion:def.schemaVersion,props:structuredClone(def.defaultProps)}}});await load();}catch(e){setError(e instanceof ApiError?e.message:e instanceof Error?e.message:'Falha ao criar.');}finally{setBusy(false);}}
+ async function remove(id:number){if(!window.confirm('Excluir este modelo?'))return;try{await api(`/templates/${id}`,{method:'DELETE'});await load();}catch(e){setError(e instanceof Error?e.message:'Falha ao excluir.');}}
+ async function edit(item:Template){const name=window.prompt('Nome do modelo',item.name);if(!name?.trim())return;const segment=window.prompt('Segmento: advocacia, saude, institucional ou custom',item.segment);if(!segment)return;try{await api(`/templates/${item.id}`,{method:'PATCH',body:{name,segment}});await load();}catch(e){setError(e instanceof Error?e.message:'Falha ao atualizar.');}}
+ return <div className="space-y-5"><header className="flex items-end justify-between"><div><p className="text-sm text-ink-500">Biblioteca reutilizável</p><h1 className="text-2xl font-semibold">Modelos</h1></div><button className="btn-primary" disabled={busy} onClick={()=>void create()}><Plus size={16}/> Novo modelo de seção</button></header>{error&&<p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-800">{error}</p>}<div className="space-y-2">{items.map((item)=><article key={item.id} className="panel flex items-center justify-between p-4"><div><strong>{item.name}</strong><p className="text-xs text-ink-500">{item.segment} · {item.kind==='page'?'Página':'Seção'}</p></div><div className="flex"><button className="btn-ghost" onClick={()=>void edit(item)} aria-label={`Editar ${item.name}`}><Pencil size={16}/></button><button className="btn-ghost text-red-700" onClick={()=>void remove(item.id)} aria-label={`Excluir ${item.name}`}><Trash2 size={16}/></button></div></article>)}{!items.length&&<p className="panel p-6 text-sm text-ink-500">Nenhum modelo cadastrado.</p>}</div></div>;
+}

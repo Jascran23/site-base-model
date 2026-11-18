@@ -12,7 +12,7 @@ Projeto-base reutilizável: **uma instalação independente por cliente** (site,
 | 3 | Dashboard administrativo | ✅ base pronta (contagens, recentes, atividades) |
 | 4 | Biblioteca de imagens | ✅ pronta e testada |
 | 5 | Páginas | ✅ pronta e testada |
-| 6 | Editor de seções | ⏳ |
+| 6 | Editor de seções e modelos | ✅ implementada (4 seções de referência) |
 | 7 | Tema | ⏳ tokens padrão no seed |
 | 8 | Site público dinâmico | ⏳ placeholder |
 | 9 | SEO, formulários, configurações | ⏳ tabelas prontas |
@@ -25,16 +25,18 @@ apps/api/src
   db/                  pool, migrate.ts, seed.ts, migrations/*.sql
   lib/                 permissions.ts (catálogo), password, audit, errors, defaults
   middleware/          auth (sessão, permissões, CSRF), error
-  modules/             auth · users · dashboard · media · pages
+  modules/             auth · users · dashboard · media · pages · templates
   scripts/create-master.ts
 apps/web/src
   admin/               layout, páginas do painel e biblioteca de imagens
-  public/              site público (Etapa 8)
+  public/              renderizadores-base das seções (site público completo na Etapa 8)
   lib/                 api (fetch + CSRF), auth (contexto)
 packages/shared        schemas e tipos compartilhados entre API e web
 storage/uploads        arquivos enviados (fora do webroot)
 docs/INSTALACAO.md
 ```
+
+Etapa 6: registry extensível com schemas Zod, editor com autosave concorrente e modelos por segmento. As seções implementadas como referência são hero, sobre, serviços e contato; as demais do roadmap aguardam validação do padrão.
 
 ## Rodar em desenvolvimento
 Veja `docs/INSTALACAO.md`. Resumo: `cp .env.example .env` → editar → `npm install` → `npm run setup` → `npm run dev:api` e `npm run dev:web`.

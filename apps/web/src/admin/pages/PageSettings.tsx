@@ -5,6 +5,7 @@ import { type PageDraft, type PageSummary } from '@cms/shared';
 import { api, ApiError } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { MediaPicker, type MediaItem } from '../MediaPicker';
+import { SectionEditor } from './SectionEditor';
 
 interface PageEditorData {
   page: PageSummary;
@@ -83,6 +84,13 @@ export function PageSettings() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível criar o preview.'); }
   }
 
+  async function saveAsTemplate() {
+    const name=window.prompt('Nome do modelo',page?.title??'');if(!name?.trim())return;
+    const segment=window.prompt('Segmento: advocacia, saude, institucional ou custom','custom');if(!segment)return;
+    try { await api(`/templates/from-page/${id}`,{method:'POST',body:{name,segment}});setNotice('Página salva como modelo.'); }
+    catch(e){setError(e instanceof Error?e.message:'Não foi possível salvar o modelo.');}
+  }
+
   if (loading) return <p className="text-sm text-ink-500">Carregando página…</p>;
   if (!page || !draft) return <div className="space-y-4"><button className="btn-ghost" onClick={() => navigate('/admin/paginas')}><ArrowLeft size={16} /> Voltar às páginas</button>{error && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{error}</p>}</div>;
 
@@ -92,6 +100,7 @@ export function PageSettings() {
       <div><p className="text-sm text-ink-500">Configurações da página</p><h1 className="text-2xl font-semibold">{page.title}</h1><p className="mt-1 text-sm text-ink-500">/{page.slug} · {page.status === 'published' ? 'Publicada' : 'Rascunho'}</p></div>
       <div className="flex flex-wrap gap-2">
         {can('pages.view') && <button className="btn-ghost" onClick={() => void preview()}><Eye size={16} /> Visualizar rascunho</button>}
+        {can('templates.manage') && <button className="btn-ghost" onClick={() => void saveAsTemplate()}>Salvar como modelo</button>}
         {can('pages.publish') && page.status === 'draft' && <button className="btn-primary" onClick={() => void perform('publish', 'Página publicada.')}>Publicar</button>}
         {can('pages.publish') && page.status === 'published' && <button className="btn-ghost" onClick={() => void perform('unpublish', 'Página voltou para rascunho.')}>Despublicar</button>}
         {can('pages.publish') && page.status === 'published' && !page.is_home && <button className="btn-ghost" onClick={() => void perform('set-home', 'Página definida como inicial.')}>Definir como inicial</button>}
@@ -122,10 +131,7 @@ export function PageSettings() {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={noindex} onChange={(e) => setNoindex(e.target.checked)} disabled={!canSeo} /> Não indexar esta página</label>
       </section>
 
-      <section className="panel p-5">
-        <h2 className="font-semibold">Conteúdo</h2>
-        <p className="mt-1 text-sm text-ink-500">Rascunho v{draft.id} com {draft.content.sections.length} seções. O editor visual chega na Etapa 6.</p>
-      </section>
+      {canEdit ? <SectionEditor key={`${page.id}-${draft.id}`} initial={draft.content} versionId={draft.id} pageId={page.id} canStructure={can('sections.manage')} /> : <section className="panel p-5"><h2 className="font-semibold">Conteúdo</h2><p className="mt-1 text-sm text-ink-500">Rascunho v{draft.id} com {draft.content.sections.length} seções. Você não tem permissão para editá-lo.</p></section>}
 
       {(canEdit || canSeo) && <div className="flex justify-end"><button className="btn-primary" disabled={saving}>{saving ? 'Salvando…' : 'Salvar configurações'}</button></div>}
     </form>

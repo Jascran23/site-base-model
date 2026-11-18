@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import { isDeepStrictEqual } from 'node:util';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { pageDraftSchema, type PageDraft } from '@cms/shared';
+import { getSectionDefinition, pageDraftSchema, type PageDraft } from '@cms/shared';
 import { pool } from '../../db/pool.js';
 import { asyncHandler, HttpError } from '../../lib/errors.js';
 import { audit } from '../../lib/audit.js';
@@ -17,6 +19,7 @@ const idSchema = z.coerce.number().int().positive();
 const createSchema = z.object({
   title: z.string().trim().min(2).max(190),
   slug: z.string().trim().min(1).max(190).optional(),
+  template_id: z.coerce.number().int().positive().optional(),
 }).strict();
 const updateSchema = z.object({
   title: z.string().trim().min(2).max(190).optional(),
@@ -71,7 +74,13 @@ pagesRouter.get('/', requirePermission('pages.view'), asyncHandler(async (req, r
 pagesRouter.post('/', requirePermission('pages.create'), asyncHandler(async (req, res) => {
   const data = createSchema.parse(req.body);
   const slug = normalizeSlug(data.slug ?? data.title);
-  const content: PageDraft = { sections: [] };
+  let content: PageDraft = { sections: [] };
+  if (data.template_id) {
+    const [templates] = await pool.query<RowDataPacket[]>("SELECT content FROM templates WHERE id=? AND kind='page'", [data.template_id]);
+    if (!templates[0]) throw new HttpError(404, 'Modelo de página não encontrado.');
+    const templateContent = pageDraftSchema.parse(typeof templates[0].content === 'string' ? JSON.parse(templates[0].content) : templates[0].content);
+    content = { sections: templateContent.sections.map((section) => ({ ...section, id: randomUUID(), props: structuredClone(section.props) })) };
+  }
   const conn = await pool.getConnection();
   let pageId = 0;
   try {
@@ -82,7 +91,7 @@ pagesRouter.post('/', requirePermission('pages.create'), asyncHandler(async (req
     const [draftResult] = await conn.query<ResultSetHeader>(
       'INSERT INTO page_versions (page_id,kind,content,created_by) VALUES (?,\'draft\',?,?)',
       [pageId, JSON.stringify(content), req.auth!.user.id]);
-    await syncMediaUsages('page_version', draftResult.insertId, [], conn);
+    await syncMediaUsages('page_version', draftResult.insertId, extractMediaIds(content), conn);
     await conn.commit();
   } catch (error) { await conn.rollback(); throw error; }
   finally { conn.release(); }
@@ -102,7 +111,8 @@ pagesRouter.get('/:id/draft', requirePermission('pages.view'), asyncHandler(asyn
 
 pagesRouter.put('/:id/draft', requirePermission('pages.edit'), asyncHandler(async (req, res) => {
   const id = parsePageId(req.params.id);
-  const content = pageDraftSchema.parse(req.body);
+  const payload = z.object({ baseVersionId: z.number().int().positive(), content: pageDraftSchema }).strict().parse(req.body);
+  const content = payload.content;
   const mediaIds = extractMediaIds(content);
   if (mediaIds.length) requirePageAccess(req, 'media.select');
   const conn = await pool.getConnection();
@@ -111,6 +121,22 @@ pagesRouter.put('/:id/draft', requirePermission('pages.edit'), asyncHandler(asyn
     await conn.beginTransaction();
     const [pages] = await conn.query<RowDataPacket[]>('SELECT id,seo_og_image_id FROM pages WHERE id=? FOR UPDATE', [id]);
     if (!pages[0]) throw new HttpError(404, 'Página não encontrada.');
+    const [versions] = await conn.query<RowDataPacket[]>('SELECT id,content FROM page_versions WHERE page_id=? AND kind=\'draft\' ORDER BY id DESC LIMIT 1 FOR UPDATE', [id]);
+    if (!versions[0] || Number(versions[0].id) !== payload.baseVersionId) throw new HttpError(409, 'O rascunho mudou em outra sessão. Recarregue antes de continuar.', 'DRAFT_CONFLICT');
+    const previous = pageDraftFromDb(versions[0].content);
+    if (req.auth!.user.role !== 'master') {
+      const structuralChange = !isDeepStrictEqual(content.sections.map(({ id: sectionId, type, schemaVersion, hidden }) => ({ id: sectionId, type, schemaVersion, hidden })), previous.sections.map(({ id: sectionId, type, schemaVersion, hidden }) => ({ id: sectionId, type, schemaVersion, hidden })));
+      if (structuralChange && !can(req.auth!, 'sections.manage')) throw new HttpError(403, 'Você não tem permissão para alterar a estrutura das seções.', 'FORBIDDEN');
+      for (const section of content.sections) {
+        const definition = getSectionDefinition(section.type)!;
+        const before = previous.sections.find((item) => item.id === section.id);
+        for (const key of Object.keys(section.props)) {
+          if (definition.editableByClient.includes(key)) continue;
+          const expected = before?.props[key] ?? definition.defaultProps[key];
+          if (!isDeepStrictEqual(section.props[key], expected)) throw new HttpError(403, `O campo ${key} desta seção só pode ser alterado pelo administrador.`, 'FORBIDDEN');
+        }
+      }
+    }
     const [result] = await conn.query<ResultSetHeader>(
       'INSERT INTO page_versions (page_id,kind,content,created_by) VALUES (?,\'draft\',?,?)',
       [id, JSON.stringify(content), req.auth!.user.id]);
