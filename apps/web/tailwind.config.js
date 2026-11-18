@@ -1,6 +1,10 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const webRoot = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  content: [path.join(webRoot, 'index.html'), path.join(webRoot, 'src/**/*.{ts,tsx}')],
   theme: {
     extend: {
       colors: {

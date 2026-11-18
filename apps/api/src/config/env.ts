@@ -9,7 +9,7 @@ dotenv.config({ path: path.join(ROOT_DIR, '.env') });
 
 const schema = z.object({
   PROJECT_NAME: z.string().default('Site Institucional'),
-  SITE_URL: z.string().url().default('http://localhost:5173'),
+  SITE_URL: z.string().url().default('http://localhost:3001'),
   API_PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   DB_HOST: z.string().default('127.0.0.1'),

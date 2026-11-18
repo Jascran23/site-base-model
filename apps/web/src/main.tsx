@@ -1,43 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
+import { AppRoutes, type InitialPublicRender } from './AppRoutes';
 import './index.css';
-import { AuthProvider } from './lib/auth';
-import { AdminLayout } from './admin/AdminLayout';
-import { Login } from './admin/pages/Login';
-import { Dashboard } from './admin/pages/Dashboard';
-import { Users } from './admin/pages/Users';
-import { Media } from './admin/pages/Media';
-import { Pages } from './admin/pages/Pages';
-import { PageSettings } from './admin/pages/PageSettings';
-import { PagePreview } from './admin/pages/PagePreview';
-import { Templates } from './admin/pages/Templates';
-import { Appearance } from './admin/pages/Appearance';
-import { ComingSoon } from './admin/pages/ComingSoon';
-import { PublicHome } from './public/PublicHome';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<PublicHome />} />
-          <Route path="/admin/login" element={<Login />} />
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="paginas" element={<Pages />} />
-            <Route path="paginas/:id" element={<PageSettings />} />
-            <Route path="preview/:token" element={<PagePreview />} />
-            <Route path="imagens" element={<Media />} />
-            <Route path="aparencia" element={<Appearance />} />
-            <Route path="modelos" element={<Templates />} />
-            <Route path="usuarios" element={<Users />} />
-            <Route path="configuracoes" element={<ComingSoon title="Configurações" stage="Etapa 9" />} />
-            <Route path="seo" element={<ComingSoon title="SEO" stage="Etapa 9" />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
-);
+const container=document.getElementById('root')!;
+let initial:InitialPublicRender=null;
+try{if(container.dataset.public)initial=JSON.parse(container.dataset.public) as InitialPublicRender;}catch{/* Client fallback fetches the public page. */}
+const app=<React.StrictMode><BrowserRouter><AppRoutes initialPublicRender={initial}/></BrowserRouter></React.StrictMode>;
+if(container.hasChildNodes()&&initial)ReactDOM.hydrateRoot(container,app);else ReactDOM.createRoot(container).render(app);

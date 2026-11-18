@@ -11,10 +11,12 @@ import { mediaRouter } from './modules/media/media.routes.js';
 import { pagesRouter, previewRouter } from './modules/pages/pages.routes.js';
 import { templatesRouter } from './modules/templates/templates.routes.js';
 import { themeRouter } from './modules/theme/theme.routes.js';
+import { publicRouter } from './modules/public/public.routes.js';
+import { installPublicRendering } from './public-ssr.js';
 import { env } from './config/env.js';
 import path from 'node:path';
 
-export function createApp() {
+export async function createApp() {
   const app = express();
   app.set('trust proxy', env.isProd ? 1 : false);
   app.disable('x-powered-by');
@@ -34,6 +36,7 @@ export function createApp() {
   app.use('/api/templates', templatesRouter);
   app.use('/api/theme', themeRouter);
   app.use('/api/preview', previewRouter);
+  app.use('/api/public', publicRouter);
 
   // Arquivos publicados: nomes UUID gerados pelo servidor, sem listagem nem execução.
   app.get('/uploads/:filename', (req, res, next) => {
@@ -44,6 +47,8 @@ export function createApp() {
     res.sendFile(path.join(env.storageDir, filename), (err) => { if (err && !res.headersSent) res.status(404).end(); });
   });
 
+  app.use('/api', notFound);
+  await installPublicRendering(app);
   app.use(notFound);
   app.use(errorHandler);
   return app;

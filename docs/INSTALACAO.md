@@ -11,8 +11,8 @@ Hospedagem compartilhada sem Node **não** serve.
 3. `npm install`
 4. `npm run setup` — roda migrations, seeds e cria o master a partir de `MASTER_*`.
 5. **Remova `MASTER_PASSWORD` do `.env`.**
-6. Desenvolvimento: `npm run dev:api` (porta 3001) e `npm run dev:web` (porta 5173, com proxy para `/api`).
-7. Produção: `npm run build`; `node apps/api/dist/server.js` sob PM2; sirva `apps/web/dist` pelo Nginx com fallback para `index.html` e proxy de `/api` para a API. Defina `NODE_ENV=production` (cookie `Secure` e `trust proxy`).
+6. Desenvolvimento: `npm run dev:api` (API e site com SSR em `http://localhost:3001`) e `npm run dev:web` (painel com HMR em `http://localhost:5173`, com proxy para `/api`).
+7. Produção: `npm run build`; `node apps/api/dist/server.js` sob PM2. O processo da API serve o site SSR, o painel e os assets de `apps/web/dist`; configure o Nginx para encaminhar as requisições ao processo Node. Defina `SITE_URL` com a URL pública e `NODE_ENV=production` (cookie `Secure` e `trust proxy`).
 
 ## Novo cliente (duplicação)
 1. Copie o repositório **limpo** (sem `.env`, sem `storage/uploads/*`, sem `node_modules`).
