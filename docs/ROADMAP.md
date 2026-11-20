@@ -1,8 +1,8 @@
-# Mapa das etapas restantes (4 a 10)
+﻿# Mapa das etapas restantes (4 a 10)
 
 Como usar com o Codex: **uma etapa por vez, uma branch por etapa** (`etapa-04-imagens`). Cole o prompt da etapa, revise o diff, rode os critérios de aceite e só então faça merge. Leia sempre `AGENTS.md` antes (o Codex o lê sozinho).
 
-Estado atual: Etapas 1 a 7 prontas; implementação da Etapa 8 concluída, com a verificação Lighthouse pendente (banco, auth, permissões, dashboard, biblioteca de imagens, páginas, editor, modelos, tema e site público SSR). Etapas 4 e 5 foram validadas com MySQL e sessões de cliente. A Etapa 6 implementa quatro seções-base (hero, about, services, contact), validação no servidor, editor, preview e modelos genéricos. A Etapa 7 implementa tema em rascunho/publicado, acesso por grupos, preview, CSS vars e identidade visual. A Etapa 8 implementa API pública somente de conteúdo publicado, SSR no Express, hidratação e assets. A migration `001_init.sql` não foi alterada.
+Estado atual: Etapas 1 a 9 implementadas; Lighthouse da Etapa 8 pulado por decisÃ£o do usuÃ¡rio; build Vite da Etapa 9 pendente por restriÃ§Ã£o do ambiente. A Etapa 10 trata de seguranÃ§a final, testes e hospedagem.
 
 Decisão D1: `packages/shared` foi criado na Etapa 5 com o schema genérico de rascunho e tipos de página compartilhados entre API e web. O registry foi concluído na Etapa 6.
 
@@ -207,3 +207,9 @@ Componentes iniciais: header, hero, about, services, specialties, team, differen
 - **Concorrência de edição** entre master e cliente: usar `baseVersionId` no autosave.
 - **Escopo do editor** cresce fácil: nada de construtor livre na v1.
 - **Atualizar instalações antigas:** migrations idempotentes e documentadas.
+
+## Registro de andamento — Etapa 9 (2026-11-20)
+
+A Etapa 8 segue com o Lighthouse pulado a pedido do usuário; nenhuma nota foi atribuída. A Etapa 9 foi implementada sem nova migration, pois as tabelas necessárias já existem. Foram adicionados SEO no SSR, sitemap e robots, JSON-LD por segmento, gestão de configurações, construtor master de formulários, formulário público com consentimento obrigatório, honeypot, limite por IP e hash de IP, além da caixa de entrada com exportação CSV e exclusão protegida. As definições de formulário são master-only; leitura da caixa usa `forms.view`. O envio SMTP opcional ainda não foi ativado; mensagens são salvas no banco.
+
+Verificações: typecheck da API e da web passaram; a seed foi aplicada; aceitação manual confirmou consentimento obrigatório (400), honeypot silencioso sem persistência (200), submissão válida persistida (201), rotas privadas protegidas (401), sitemap sem rascunhos/noindex e diretivas de robots. Dados temporários foram removidos. `npm run build` compilou shared e API, e passou pelo typecheck do front, mas o Vite não conseguiu ler um diretório ancestral (`Access is denied`) no ambiente de execução; por isso a etapa fica implementada, com build final pendente.

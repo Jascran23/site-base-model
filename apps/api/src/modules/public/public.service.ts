@@ -1,5 +1,5 @@
 import type { RowDataPacket } from 'mysql2';
-import { DEFAULT_THEME, themeSchema, type ThemeTokens } from '@cms/shared';
+import { DEFAULT_THEME, formFieldsSchema, themeSchema, type FormField, type ThemeTokens } from '@cms/shared';
 import { pool } from '../../db/pool.js';
 import { HttpError } from '../../lib/errors.js';
 import { extractMediaIds, pageDraftFromDb } from '../pages/pages.service.js';
@@ -12,6 +12,7 @@ export interface PublicSiteData {
   social: Record<string, unknown>;
   layout: Record<string, unknown>;
   navigation: { title: string; slug: string; isHome: boolean }[];
+  forms: {id:number;name:string;fields:FormField[];successMessage:string}[];
 }
 export interface PublicPageData {
   site: PublicSiteData;
@@ -26,16 +27,18 @@ function objectSetting(value:unknown):Record<string,unknown>{const parsed=parseJ
 async function assetUrl(id:number|null){if(!id)return null;const [rows]=await pool.query<RowDataPacket[]>('SELECT stored_name FROM media WHERE id=?',[id]);return rows[0]?`/uploads/${rows[0].stored_name}`:null;}
 
 export async function getPublicSite():Promise<PublicSiteData>{
-  const [[themeRows],[settings],[navigation]]=await Promise.all([
+  const [[themeRows],[settings],[navigation],[formRows]]=await Promise.all([
     pool.query<RowDataPacket[]>("SELECT tokens FROM theme_settings WHERE kind='published'"),
-    pool.query<RowDataPacket[]>('SELECT `key`,value FROM site_settings WHERE `key` IN (?,?,?)',['business','social','layout']),
+    pool.query<RowDataPacket[]>('SELECT `key`,value FROM site_settings WHERE `key` IN (?,?,?,?)',['business','social','layout']),
     pool.query<RowDataPacket[]>("SELECT title,slug,is_home FROM pages WHERE status='published' ORDER BY is_home DESC,title"),
+    pool.query<RowDataPacket[]>('SELECT id,name,fields,success_message FROM form_definitions ORDER BY id LIMIT 20'),
   ]);
   const parsed=themeRows[0]?themeSchema.safeParse(parseJson(themeRows[0].tokens)):null;
   const theme=parsed?.success?parsed.data:themeSchema.parse(DEFAULT_THEME);
   const settingMap=new Map(settings.map((row)=>[String(row.key),objectSetting(row.value)]));
   const [logoUrl,faviconUrl]=await Promise.all([assetUrl(theme.logoMediaId),assetUrl(theme.faviconMediaId)]);
-  return {theme,logoUrl,faviconUrl,business:settingMap.get('business')??{},social:settingMap.get('social')??{},layout:settingMap.get('layout')??{},navigation:navigation.map((row)=>({title:String(row.title),slug:String(row.slug),isHome:Number(row.is_home)===1}))};
+  const forms=formRows.flatMap((row)=>{const parsed=formFieldsSchema.safeParse(parseJson(row.fields));return parsed.success?[{id:Number(row.id),name:String(row.name),fields:parsed.data,successMessage:String(row.success_message)}]:[];});
+  return {theme,logoUrl,faviconUrl,business:settingMap.get('business')??{},social:settingMap.get('social')??{},layout:settingMap.get('layout')??{},navigation:navigation.map((row)=>({title:String(row.title),slug:String(row.slug),isHome:Number(row.is_home)===1})),forms};
 }
 
 async function materializePage(row:RowDataPacket,contentValue:unknown,site?:PublicSiteData):Promise<PublicPageData>{

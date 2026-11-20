@@ -9,7 +9,8 @@ export const SECTION_TYPES = [
 ] as const;
 
 export const DEFAULT_SITE_SETTINGS: Record<string, unknown> = {
-  business: { name: '', phone: '', email: '', whatsapp: '', address: '', hours: '' },
+  business: { name: '', segment: 'institutional', phone: '', email: '', whatsapp: '', address: '', hours: '' },
   social: { instagram: '', facebook: '', linkedin: '' },
+  technical: { submissionRetentionDays: 365 },
   theme_client_groups: [],
 };

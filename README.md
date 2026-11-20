@@ -1,4 +1,4 @@
-# CMS Base — site institucional dinâmico
+﻿# CMS Base — site institucional dinâmico
 
 Projeto-base reutilizável: **uma instalação independente por cliente** (site, painel, banco MySQL, usuários, imagens e tema próprios). Não é SaaS nem multi-tenant.
 
@@ -14,8 +14,8 @@ Projeto-base reutilizável: **uma instalação independente por cliente** (site,
 | 5 | Páginas | ✅ pronta e testada |
 | 6 | Editor de seções e modelos | ✅ implementada (4 seções de referência) |
 | 7 | Personalização de tema | ✅ implementada |
-| 8 | Site público dinâmico | ⚙️ SSR implementado; Lighthouse pendente |
-| 9 | SEO, formulários, configurações | ⏳ tabelas prontas |
+| 8 | Site público dinâmico | ✅ SSR implementado; Lighthouse pulado por decisão do usuário |
+| 9 | SEO, formulários, configurações | ⚙️ implementada; typechecks e aceitação manual passaram; build Vite pendente por restrição do ambiente |
 | 10 | Segurança final, testes, hospedagem | ⏳ |
 
 ## Estrutura
@@ -25,7 +25,7 @@ apps/api/src
   db/                  pool, migrate.ts, seed.ts, migrations/*.sql
   lib/                 permissions.ts (catálogo), password, audit, errors, defaults
   middleware/          auth (sessão, permissões, CSRF), error
-  modules/             auth · users · dashboard · media · pages · templates · theme
+  modules/             auth · users · dashboard · media · pages · templates · theme · public · forms · seo · settings
   scripts/create-master.ts
 apps/web/src
   admin/               layout, páginas do painel e biblioteca de imagens

@@ -12,7 +12,9 @@ import { PageSettings } from './admin/pages/PageSettings';
 import { PagePreview } from './admin/pages/PagePreview';
 import { Templates } from './admin/pages/Templates';
 import { Appearance } from './admin/pages/Appearance';
-import { ComingSoon } from './admin/pages/ComingSoon';
+import { Settings } from './admin/pages/Settings';
+import { Seo } from './admin/pages/Seo';
+import { Forms } from './admin/pages/Forms';
 import { PublicNotFound, PublicPage, type PublicPageData } from './public/PublicPage';
 
 export type InitialPublicRender = {kind:'page';data:PublicPageData}|{kind:'not-found'}|null;
@@ -38,8 +40,8 @@ export function AppRoutes({initialPublicRender=null}:{initialPublicRender?:Initi
     <Route path="/admin" element={<AdminLayout/>}>
       <Route index element={<Dashboard/>}/><Route path="paginas" element={<Pages/>}/><Route path="paginas/:id" element={<PageSettings/>}/>
       <Route path="preview/:token" element={<PagePreview/>}/><Route path="imagens" element={<Media/>}/><Route path="aparencia" element={<Appearance/>}/>
-      <Route path="modelos" element={<Templates/>}/><Route path="usuarios" element={<Users/>}/>
-      <Route path="configuracoes" element={<ComingSoon title="Configurações" stage="Etapa 9"/>}/><Route path="seo" element={<ComingSoon title="SEO" stage="Etapa 9"/>}/>
+      <Route path="modelos" element={<Templates/>}/><Route path="usuarios" element={<Users/>}/><Route path="formularios" element={<Forms/>}/>
+      <Route path="configuracoes" element={<Settings/>}/><Route path="seo" element={<Seo/>}/>
     </Route>
     <Route path="/:slug" element={<PublicRoute initial={initialPublicRender}/>}/>
     <Route path="*" element={<Navigate to="/" replace/>}/>

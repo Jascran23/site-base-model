@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Navigate, Outlet } from 'react-router-dom';
-import { FileText, Image, LayoutDashboard, LogOut, Menu, Palette, Search, Settings, Shapes, Users, X, type LucideIcon } from 'lucide-react';
+import { FileText, Image, LayoutDashboard, LogOut, Menu, Palette, Search, Settings, Shapes, Users, MessagesSquare, X, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 interface NavItem { to: string; label: string; icon: LucideIcon; perms?: string[]; end?: boolean }
@@ -13,6 +13,7 @@ const NAV: NavItem[] = [
   { to: '/admin/aparencia', label: 'Aparência', icon: Palette, perms: ['theme.edit'] },
   { to: '/admin/modelos', label: 'Modelos', icon: Shapes, perms: ['templates.manage'] },
   { to: '/admin/usuarios', label: 'Usuários', icon: Users, perms: ['users.manage'] },
+  { to: '/admin/formularios', label: 'Formulários', icon: MessagesSquare, perms: ['forms.view', 'forms.manage'] },
   { to: '/admin/configuracoes', label: 'Configurações', icon: Settings, perms: ['settings.business', 'settings.technical'] },
   { to: '/admin/seo', label: 'SEO', icon: Search, perms: ['seo.edit'] },
 ];

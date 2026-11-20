@@ -1,9 +1,9 @@
 import { useEffect, type CSSProperties } from 'react';
-import { themeToCssVars, type PageDraft, type PageSummary, type ThemeTokens } from '@cms/shared';
+import { themeToCssVars, type FormField, type PageDraft, type PageSummary, type ThemeTokens } from '@cms/shared';
 import { SectionRenderer, type PublicMediaMeta } from './sections';
 
 export interface PublicPageData {
-  site:{theme:ThemeTokens;logoUrl:string|null;faviconUrl:string|null;business:Record<string,unknown>;social:Record<string,unknown>;layout:Record<string,unknown>;navigation:{title:string;slug:string;isHome:boolean}[]};
+  site:{theme:ThemeTokens;logoUrl:string|null;faviconUrl:string|null;business:Record<string,unknown>;social:Record<string,unknown>;layout:Record<string,unknown>;navigation:{title:string;slug:string;isHome:boolean}[];forms:{id:number;name:string;fields:FormField[];successMessage:string}[]};
   page:Pick<PageSummary,'id'|'title'|'slug'|'is_home'|'seo_title'|'seo_description'|'seo_canonical'|'seo_og_image_id'|'seo_noindex'>;
   content:PageDraft;mediaUrls:Record<number,string>;mediaMeta:Record<number,PublicMediaMeta>;
 }
@@ -18,7 +18,7 @@ export function PublicPage({data}:{data:PublicPageData}){
   const vars=themeToCssVars(theme) as CSSProperties;const businessName=typeof site.business.name==='string'&&site.business.name?site.business.name:page.title;
   return <div className="min-h-screen" style={{...vars,backgroundColor:theme.colors.background,color:theme.colors.text,fontFamily:theme.typography.bodyFont,fontSize:theme.typography.baseSize}}>
     <header className="border-b" style={{borderColor:theme.colors.surface,backgroundColor:theme.colors.background}}><div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">{site.logoUrl?<a href="/" aria-label={`${businessName}, início`}><img src={site.logoUrl} alt={businessName} className="max-h-16 max-w-52 object-contain"/></a>:<a href="/" className="text-lg font-semibold" style={{fontFamily:theme.typography.headingFont,color:theme.colors.primary}}>{businessName}</a>}<nav aria-label="Navegação principal" className="flex flex-wrap gap-4 text-sm">{site.navigation.map((item)=><a key={item.slug} href={item.isHome?'/':`/${item.slug}`} aria-current={item.slug===page.slug?'page':undefined} className="hover:underline">{item.title}</a>)}</nav></div></header>
-    <main className="mx-auto max-w-6xl">{!content.sections.some((section)=>section.type==='hero'&&!section.hidden)&&<h1 className="sr-only">{page.title}</h1>}{content.sections.length?content.sections.map((section)=><SectionRenderer key={section.id} section={section} mediaUrls={data.mediaUrls} mediaMeta={data.mediaMeta}/>):<section className="px-6 py-16"><h2 className="text-3xl font-semibold" style={{fontFamily:theme.typography.headingFont,color:theme.colors.primary}}>{page.title}</h2></section>}</main>
+    <main className="mx-auto max-w-6xl">{!content.sections.some((section)=>section.type==='hero'&&!section.hidden)&&<h1 className="sr-only">{page.title}</h1>}{content.sections.length?content.sections.map((section)=><SectionRenderer key={section.id} section={section} mediaUrls={data.mediaUrls} mediaMeta={data.mediaMeta} contactForm={site.forms[0]}/>):<section className="px-6 py-16"><h2 className="text-3xl font-semibold" style={{fontFamily:theme.typography.headingFont,color:theme.colors.primary}}>{page.title}</h2></section>}</main>
     <footer className="mt-12" style={{backgroundColor:theme.colors.surface,color:theme.colors.textMuted}}><div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 px-6 py-8 text-sm"><span>{businessName}</span><span>{typeof site.business.email==='string'?site.business.email:''}</span><span>{typeof site.business.phone==='string'?site.business.phone:''}</span></div></footer>
   </div>;
 }

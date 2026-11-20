@@ -19,6 +19,7 @@ export const PERMISSIONS: PermissionDef[] = [
   // Somente o desenvolvedor master (não podem ser concedidas):
   { key: 'users.manage', label: 'Gerenciar usuários e permissões', group: 'Sistema', masterOnly: true },
   { key: 'templates.manage', label: 'Gerenciar modelos', group: 'Sistema', masterOnly: true },
+  { key: 'forms.manage', label: 'Gerenciar formulários e mensagens', group: 'Sistema', masterOnly: true },
   { key: 'settings.technical', label: 'Parâmetros técnicos', group: 'Sistema', masterOnly: true },
   { key: 'audit.view', label: 'Ver histórico de alterações', group: 'Sistema', masterOnly: true },
 ];

@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { attachSession, csrfProtection } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/error.js';
+import { asyncHandler } from './lib/errors.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { usersRouter } from './modules/users/users.routes.js';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes.js';
@@ -12,6 +13,9 @@ import { pagesRouter, previewRouter } from './modules/pages/pages.routes.js';
 import { templatesRouter } from './modules/templates/templates.routes.js';
 import { themeRouter } from './modules/theme/theme.routes.js';
 import { publicRouter } from './modules/public/public.routes.js';
+import { formsAdminRouter, publicFormsRouter } from './modules/forms/forms.routes.js';
+import { settingsRouter } from './modules/settings/settings.routes.js';
+import { seoRouter, sendRobots, sendSitemap } from './modules/seo/seo.routes.js';
 import { installPublicRendering } from './public-ssr.js';
 import { env } from './config/env.js';
 import path from 'node:path';
@@ -37,6 +41,10 @@ export async function createApp() {
   app.use('/api/theme', themeRouter);
   app.use('/api/preview', previewRouter);
   app.use('/api/public', publicRouter);
+  app.use('/api/public/forms', publicFormsRouter);
+  app.use('/api/forms', formsAdminRouter);
+  app.use('/api/settings', settingsRouter);
+  app.use('/api/seo', seoRouter);
 
   // Arquivos publicados: nomes UUID gerados pelo servidor, sem listagem nem execução.
   app.get('/uploads/:filename', (req, res, next) => {
@@ -48,6 +56,8 @@ export async function createApp() {
   });
 
   app.use('/api', notFound);
+  app.get('/sitemap.xml', asyncHandler(async(_req,res)=>sendSitemap(res)));
+  app.get('/robots.txt', (_req,res)=>sendRobots(res));
   await installPublicRendering(app);
   app.use(notFound);
   app.use(errorHandler);

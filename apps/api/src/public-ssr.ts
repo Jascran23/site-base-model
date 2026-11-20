@@ -16,11 +16,19 @@ const webRoot=path.join(ROOT_DIR,'apps','web');
 
 function escapeHtml(value:string){return value.replace(/[&<>"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!));}
 function safeJson(value:unknown){return JSON.stringify(value).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');}
-function headMarkup(initial:InitialRender){
+function headMarkup(initial:InitialRender,preview=false){
   if(initial.kind==='not-found')return '<title>Página não encontrada</title><meta name="robots" content="noindex">';
   const {page,site}=initial.data;const title=page.seo_title||page.title;const description=page.seo_description||'';
   const vars=Object.entries(themeToCssVars(site.theme as ThemeTokens)).map(([name,value])=>`${name}:${value}`).join(';');
-  const metadata=[`<title>${escapeHtml(title)}</title>`,description?`<meta name="description" content="${escapeHtml(description)}">`:'',page.seo_noindex?'<meta name="robots" content="noindex,nofollow">':'',page.seo_canonical?`<link rel="canonical" href="${escapeHtml(page.seo_canonical)}">`:'',site.faviconUrl?`<link rel="icon" href="${escapeHtml(site.faviconUrl)}">`:'',`<style id="site-theme">:root{${vars}}</style>`].filter(Boolean).join('');
+  const base=env.SITE_URL.replace(/\/$/,'');const canonical=page.seo_canonical||`${base}${page.is_home?'':`/${page.slug}`}`;
+  const image=page.seo_og_image_id?initial.data.mediaUrls[page.seo_og_image_id]:null;
+  const business=site.business;const segment=business.segment;
+  const schemaType=segment==='legal'?'LegalService':segment==='medical'?'MedicalBusiness':segment==='physician'?'Physician':'Organization';
+  const structured:Record<string,unknown>={'@context':'https://schema.org','@type':schemaType,name:typeof business.name==='string'&&business.name?business.name:page.title,url:canonical};
+  if(typeof business.phone==='string'&&business.phone)structured.telephone=business.phone;
+  if(typeof business.email==='string'&&business.email)structured.email=business.email;
+  if(typeof business.address==='string'&&business.address)structured.address={'@type':'PostalAddress',streetAddress:business.address};
+  const metadata=[`<title>${escapeHtml(title)}</title>`,description?`<meta name="description" content="${escapeHtml(description)}">`:'',page.seo_noindex||preview?'<meta name="robots" content="noindex,nofollow">':'',`<link rel="canonical" href="${escapeHtml(canonical)}">`,`<meta property="og:type" content="website"><meta property="og:title" content="${escapeHtml(title)}">`,description?`<meta property="og:description" content="${escapeHtml(description)}">`:'',`<meta property="og:url" content="${escapeHtml(canonical)}">`,image?`<meta property="og:image" content="${escapeHtml(new URL(image,base).toString())}">`:'',`<meta name="twitter:card" content="${image?'summary_large_image':'summary'}">`,site.faviconUrl?`<link rel="icon" href="${escapeHtml(site.faviconUrl)}">`:'',`<script type="application/ld+json">${safeJson(structured)}</script>`,`<style id="site-theme">:root{${vars}}</style>`].filter(Boolean).join('');
   return metadata;
 }
 
@@ -46,7 +54,7 @@ export async function installPublicRendering(app:Express){
       if(!renderModule)throw new Error('Renderizador SSR indisponível.');
       const appHtml=renderModule.render(req.originalUrl,initial);
       let html=template;if(vite)html=await vite.transformIndexHtml(req.originalUrl,html);
-      html=html.replace('<!--ssr-head-->',headMarkup(initial));
+      html=html.replace('<!--ssr-head-->',headMarkup(initial,req.path.startsWith('/preview/')));
       html=html.replace('<div id="root"></div>',`<div id="root" data-public="${escapeHtml(safeJson(initial))}">${appHtml}</div>`);
       if(!html.includes('id="root" data-public='))throw new Error('O template HTML não possui o ponto de hidratação esperado.');
       res.status(status).type('html').setHeader('Cache-Control',initial.kind==='page'?'public, max-age=0, must-revalidate':'no-store');res.send(html);
