@@ -1,10 +1,11 @@
 import type { ZodTypeAny } from 'zod';
+import type { ComponentType } from 'react';
 
 export type FieldDescriptor =
-  | { type: 'text' | 'textarea' | 'color'; name: string; label: string; maxLength?: number; help?: string }
-  | { type: 'toggle' | 'image'; name: string; label: string; help?: string }
-  | { type: 'link' | 'button'; name: string; label: string; help?: string }
-  | { type: 'list'; name: string; label: string; itemLabel: string; minItems?: number; maxItems?: number; fields: FieldDescriptor[] };
+  | { type: 'text' | 'textarea' | 'color'; name: string; label: string; maxLength?: number; help?: string; editableByClient?: boolean }
+  | { type: 'toggle' | 'image'; name: string; label: string; help?: string; editableByClient?: boolean }
+  | { type: 'link' | 'button'; name: string; label: string; help?: string; editableByClient?: boolean }
+  | { type: 'list'; name: string; label: string; itemLabel: string; min?: number; max?: number; minItems?: number; maxItems?: number; clientCanAdd?: boolean; clientCanRemove?: boolean; clientCanReorder?: boolean; itemSchema: ZodTypeAny; defaultItem?: Record<string, unknown>; fields: FieldDescriptor[]; editableByClient?: boolean };
 
 export interface SectionDefinition {
   type: string;
@@ -13,7 +14,9 @@ export interface SectionDefinition {
   propsSchema: ZodTypeAny;
   defaultProps: Record<string, unknown>;
   fields: FieldDescriptor[];
-  editableByClient: string[];
+  editableByClient?: string[];
+  clientCanHide?: boolean;
+  component?: ComponentType<{ section: SectionInstance; mediaUrls?: Record<number, string> }>;
 }
 
 export interface SectionInstance {
@@ -22,4 +25,5 @@ export interface SectionInstance {
   schemaVersion: number;
   props: Record<string, unknown>;
   hidden?: boolean;
+  visible?: boolean;
 }

@@ -40,7 +40,8 @@ export async function installPublicRendering(app:Express){
     const ssrFile=path.join(dist,'server','entry-server.js');renderModule=await import(pathToFileURL(ssrFile).href) as RenderModule;
   }else{
     const {createServer}=await import('vite');
-    vite=await createServer({root:webRoot,configFile:path.join(webRoot,'vite.config.ts'),server:{middlewareMode:true},appType:'custom'});
+    const webConfig=await import(pathToFileURL(path.join(webRoot,'vite.config.mjs')).href);
+    vite=await createServer({...webConfig.default,root:webRoot,configFile:false,server:{...webConfig.default.server,middlewareMode:true},appType:'custom'});
     app.use(vite.middlewares);
     template=await readFile(path.join(webRoot,'index.html'),'utf8');
   }

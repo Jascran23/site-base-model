@@ -2,7 +2,7 @@ import { pool } from './pool.js';
 import { PERMISSIONS } from '../lib/permissions.js';
 import { DEFAULT_SITE_SETTINGS, DEFAULT_THEME, SECTION_TYPES } from '../lib/defaults.js';
 import { randomUUID } from 'node:crypto';
-import { sectionRegistry, type PageDraft } from '@cms/shared';
+import { sectionRegistry, type PageDraft } from '@cms/shared/section-registry';
 
 // Seeds idempotentes e genéricos: nenhum dado de cliente.
 async function main() {
@@ -11,9 +11,13 @@ async function main() {
       'INSERT INTO permissions (`key`, label, group_name) VALUES (?,?,?) ON DUPLICATE KEY UPDATE label = VALUES(label), group_name = VALUES(group_name)',
       [p.key, p.label, p.group]);
   }
-  for (const [type, label] of SECTION_TYPES) {
+  await pool.query("DELETE FROM user_permissions WHERE permission_key='sections.manage'");
+  const sectionTypes = new Map<string, { label: string; schemaVersion: number }>(SECTION_TYPES.map(([type, label]) => [type, { label, schemaVersion: 1 }]));
+  for (const definition of Object.values(sectionRegistry)) sectionTypes.set(definition.type, { label: definition.label, schemaVersion: definition.schemaVersion });
+  for (const [type, definition] of sectionTypes) {
     await pool.query(
-      'INSERT INTO section_types (type, label) VALUES (?,?) ON DUPLICATE KEY UPDATE label = VALUES(label)', [type, label]);
+      'INSERT INTO section_types (type, label, schema_version) VALUES (?,?,?) ON DUPLICATE KEY UPDATE label = VALUES(label), schema_version = VALUES(schema_version)',
+      [type, definition.label, definition.schemaVersion]);
   }
   for (const kind of ['draft', 'published']) {
     await pool.query('INSERT IGNORE INTO theme_settings (kind, tokens) VALUES (?,?)', [kind, JSON.stringify(DEFAULT_THEME)]);

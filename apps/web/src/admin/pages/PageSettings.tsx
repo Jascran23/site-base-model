@@ -16,7 +16,7 @@ export function PageSettings() {
   const { id: rawId } = useParams();
   const id = Number(rawId);
   const navigate = useNavigate();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const canEdit = can('pages.edit');
   const canSeo = can('seo.edit');
   const canSelectMedia = can('media.select');
@@ -131,7 +131,7 @@ export function PageSettings() {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={noindex} onChange={(e) => setNoindex(e.target.checked)} disabled={!canSeo} /> Não indexar esta página</label>
       </section>
 
-      {canEdit ? <SectionEditor key={`${page.id}-${draft.id}`} initial={draft.content} versionId={draft.id} pageId={page.id} canStructure={can('sections.manage')} /> : <section className="panel p-5"><h2 className="font-semibold">Conteúdo</h2><p className="mt-1 text-sm text-ink-500">Rascunho v{draft.id} com {draft.content.sections.length} seções. Você não tem permissão para editá-lo.</p></section>}
+      {canEdit ? <SectionEditor key={`${page.id}-${draft.id}`} initial={draft.content} versionId={draft.id} pageId={page.id} canStructure={user?.role === 'master'} /> : <section className="panel p-5"><h2 className="font-semibold">Conteúdo</h2><p className="mt-1 text-sm text-ink-500">Rascunho v{draft.id} com {draft.content.sections.length} seções. Você não tem permissão para editá-lo.</p></section>}
 
       {(canEdit || canSeo) && <div className="flex justify-end"><button className="btn-primary" disabled={saving}>{saving ? 'Salvando…' : 'Salvar configurações'}</button></div>}
     </form>

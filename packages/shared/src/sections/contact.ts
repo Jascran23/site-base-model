@@ -23,12 +23,12 @@ export const contactSection: SectionDefinition = {
     button: { label: 'Enviar mensagem', url: 'mailto:contato@exemplo.com' }, contactEmail: null, backgroundColor: '#ffffff',
   },
   fields: [
-    { type: 'text', name: 'eyebrow', label: 'Texto de apoio', maxLength: 60 },
-    { type: 'text', name: 'title', label: 'Título', maxLength: 150 },
-    { type: 'textarea', name: 'body', label: 'Texto', maxLength: 600 },
-    { type: 'button', name: 'button', label: 'Botão de contato' },
+    { type: 'text', name: 'eyebrow', label: 'Texto de apoio', maxLength: 60, editableByClient: true },
+    { type: 'text', name: 'title', label: 'Título', maxLength: 150, editableByClient: true },
+    { type: 'textarea', name: 'body', label: 'Texto', maxLength: 600, editableByClient: true },
+    { type: 'button', name: 'button', label: 'Botão de contato', editableByClient: true },
     { type: 'text', name: 'contactEmail', label: 'E-mail de contato', maxLength: 190 },
     { type: 'color', name: 'backgroundColor', label: 'Cor de fundo' },
   ],
-  editableByClient: ['eyebrow', 'title', 'body', 'button'],
+  editableByClient: ['eyebrow', 'title', 'body', 'button'], clientCanHide: true,
 };

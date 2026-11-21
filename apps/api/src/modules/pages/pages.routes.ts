@@ -1,15 +1,15 @@
 import { Router } from 'express';
 import { isDeepStrictEqual } from 'node:util';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { getSectionDefinition, pageDraftSchema, type PageDraft } from '@cms/shared';
+import { getSectionDefinition, pageDraftSchema, type PageDraft } from '@cms/shared/section-registry';
+import type { FieldDescriptor, SectionDefinition, SectionInstance } from '@cms/shared';
 import { pool } from '../../db/pool.js';
 import { asyncHandler, HttpError } from '../../lib/errors.js';
 import { audit } from '../../lib/audit.js';
 import { can, requireAuth, requirePermission } from '../../middleware/auth.js';
 import { syncMediaUsages } from '../media/media.service.js';
-import { createPreviewToken, extractMediaIds, normalizeSlug, pageDraftFromDb, verifyPreviewToken } from './pages.service.js';
+import { clonePageDraftWithNewIds, createPreviewToken, extractMediaIds, normalizeSlug, pageDraftFromDb, verifyPreviewToken } from './pages.service.js';
 
 export const pagesRouter = Router();
 export const previewRouter = Router();
@@ -43,6 +43,75 @@ function requirePageAccess(req: import('express').Request, permission: string) {
 }
 
 function parsePageId(value: string) { return idSchema.parse(value); }
+
+async function rejectDraftEdit(req: import('express').Request, pageId: number, message: string, reason: string, path?: string): Promise<never> {
+  await audit(req, 'page.draft.reject', 'page', pageId, { reason, path });
+  throw new HttpError(403, message, 'FORBIDDEN');
+}
+
+function fieldEditable(definition: SectionDefinition, field: FieldDescriptor) {
+  return field.editableByClient === true || (field.editableByClient === undefined && Boolean(definition.editableByClient?.includes(field.name)));
+}
+
+function listIds(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => item && typeof item === 'object' ? String((item as { id?: unknown }).id ?? '') : '') : [];
+}
+
+async function enforceClientDraftPermissions(req: import('express').Request, pageId: number, next: PageDraft, previous: PageDraft) {
+  const nextIds = next.sections.map((section) => section.id); const previousIds = previous.sections.map((section) => section.id);
+  if (!isDeepStrictEqual(nextIds, previousIds)) await rejectDraftEdit(req, pageId,
+    'Clientes não podem adicionar, remover ou reordenar seções.', 'section_structure');
+
+  for (let index = 0; index < next.sections.length; index++) {
+    const section = next.sections[index]; const before = previous.sections[index];
+    if (section.type !== before.type || section.schemaVersion !== before.schemaVersion) await rejectDraftEdit(req, pageId,
+      'Clientes não podem substituir o tipo de uma seção.', 'section_type', section.id);
+    const definition = getSectionDefinition(section.type)!;
+    const wasVisible = before.visible ?? !before.hidden; const isVisible = section.visible ?? !section.hidden;
+    if (wasVisible !== isVisible && !definition.clientCanHide) await rejectDraftEdit(req, pageId,
+      'Você não tem permissão para ocultar esta seção.', 'section_visibility', section.id);
+
+    const keys = new Set([...Object.keys(before.props), ...Object.keys(section.props)]);
+    for (const key of keys) {
+      const oldValue = before.props[key]; const newValue = section.props[key];
+      if (isDeepStrictEqual(oldValue, newValue)) continue;
+      const field = definition.fields.find((candidate) => candidate.name === key);
+      if (!field) await rejectDraftEdit(req, pageId,
+        `O campo ${key} não faz parte desta seção.`, 'unknown_field', `${section.id}.${key}`);
+      if (!fieldEditable(definition, field!)) await rejectDraftEdit(req, pageId,
+        `O campo ${key} desta seção só pode ser alterado pelo administrador.`, 'locked_field', `${section.id}.${key}`);
+      if (field!.type !== 'list') continue;
+      const listField = field!;
+      const oldList = Array.isArray(oldValue) ? oldValue as Record<string, unknown>[] : [];
+      const newList = Array.isArray(newValue) ? newValue as Record<string, unknown>[] : [];
+      const oldIds = listIds(oldList); const newIds = listIds(newList);
+      const oldSet = new Set(oldIds); const newSet = new Set(newIds);
+      const added = newIds.filter((itemId) => !oldSet.has(itemId));
+      const removed = oldIds.filter((itemId) => !newSet.has(itemId));
+      const reordered = !isDeepStrictEqual(oldIds.filter((itemId) => newSet.has(itemId)), newIds.filter((itemId) => oldSet.has(itemId)));
+      const canManageItems = can(req.auth!, 'items.manage');
+      if (added.length && (!canManageItems || !listField.clientCanAdd)) await rejectDraftEdit(req, pageId,
+        'Você não tem permissão para adicionar itens nesta lista.', 'list_add', `${section.id}.${key}`);
+      if (removed.length && (!canManageItems || !listField.clientCanRemove)) await rejectDraftEdit(req, pageId,
+        'Você não tem permissão para remover itens desta lista.', 'list_remove', `${section.id}.${key}`);
+      if (reordered && (!canManageItems || !listField.clientCanReorder)) await rejectDraftEdit(req, pageId,
+        'Você não tem permissão para reordenar itens desta lista.', 'list_reorder', `${section.id}.${key}`);
+
+      const oldById = new Map(oldList.map((item) => [String(item.id), item]));
+      const newById = new Map(newList.map((item) => [String(item.id), item]));
+      for (const [itemId, item] of newById) {
+        const prior = oldById.get(itemId);
+        for (const child of listField.fields) {
+          if (child.type === 'list') continue;
+          const value = item[child.name]; const oldChildValue = prior?.[child.name];
+          if (isDeepStrictEqual(value, oldChildValue)) continue;
+          if (child.editableByClient !== true) await rejectDraftEdit(req, pageId,
+            `O campo ${child.name} do item só pode ser alterado pelo administrador.`, 'locked_list_field', `${section.id}.${key}.${itemId}.${child.name}`);
+        }
+      }
+    }
+  }
+}
 
 async function ensureMediaExists(mediaId: number, executor: typeof pool | Awaited<ReturnType<typeof pool.getConnection>>) {
   const [rows] = await executor.query<RowDataPacket[]>('SELECT id FROM media WHERE id=?', [mediaId]);
@@ -78,8 +147,8 @@ pagesRouter.post('/', requirePermission('pages.create'), asyncHandler(async (req
   if (data.template_id) {
     const [templates] = await pool.query<RowDataPacket[]>("SELECT content FROM templates WHERE id=? AND kind='page'", [data.template_id]);
     if (!templates[0]) throw new HttpError(404, 'Modelo de página não encontrado.');
-    const templateContent = pageDraftSchema.parse(typeof templates[0].content === 'string' ? JSON.parse(templates[0].content) : templates[0].content);
-    content = { sections: templateContent.sections.map((section) => ({ ...section, id: randomUUID(), props: structuredClone(section.props) })) };
+    const templateContent = pageDraftFromDb(templates[0].content);
+    content = clonePageDraftWithNewIds(templateContent);
   }
   const conn = await pool.getConnection();
   let pageId = 0;
@@ -125,17 +194,7 @@ pagesRouter.put('/:id/draft', requirePermission('pages.edit'), asyncHandler(asyn
     if (!versions[0] || Number(versions[0].id) !== payload.baseVersionId) throw new HttpError(409, 'O rascunho mudou em outra sessão. Recarregue antes de continuar.', 'DRAFT_CONFLICT');
     const previous = pageDraftFromDb(versions[0].content);
     if (req.auth!.user.role !== 'master') {
-      const structuralChange = !isDeepStrictEqual(content.sections.map(({ id: sectionId, type, schemaVersion, hidden }) => ({ id: sectionId, type, schemaVersion, hidden })), previous.sections.map(({ id: sectionId, type, schemaVersion, hidden }) => ({ id: sectionId, type, schemaVersion, hidden })));
-      if (structuralChange && !can(req.auth!, 'sections.manage')) throw new HttpError(403, 'Você não tem permissão para alterar a estrutura das seções.', 'FORBIDDEN');
-      for (const section of content.sections) {
-        const definition = getSectionDefinition(section.type)!;
-        const before = previous.sections.find((item) => item.id === section.id);
-        for (const key of Object.keys(section.props)) {
-          if (definition.editableByClient.includes(key)) continue;
-          const expected = before?.props[key] ?? definition.defaultProps[key];
-          if (!isDeepStrictEqual(section.props[key], expected)) throw new HttpError(403, `O campo ${key} desta seção só pode ser alterado pelo administrador.`, 'FORBIDDEN');
-        }
-      }
+      await enforceClientDraftPermissions(req, id, content, previous);
     }
     const [result] = await conn.query<ResultSetHeader>(
       'INSERT INTO page_versions (page_id,kind,content,created_by) VALUES (?,\'draft\',?,?)',
@@ -206,7 +265,7 @@ pagesRouter.post('/:id/duplicate', requirePermission('pages.create'), asyncHandl
     if (!versions[0] && source.published_version_id) {
       [versions] = await conn.query<RowDataPacket[]>('SELECT content FROM page_versions WHERE id=? AND page_id=?', [source.published_version_id, id]);
     }
-    const content = pageDraftFromDb(versions[0]?.content ?? { sections: [] });
+    const content = clonePageDraftWithNewIds(pageDraftFromDb(versions[0]?.content ?? { sections: [] }));
     const mediaIds = extractMediaIds(content);
     if ((mediaIds.length || source.seo_og_image_id) && !can(req.auth!, 'media.select')) {
       throw new HttpError(403, 'Você não tem permissão para reutilizar imagens nesta página.', 'FORBIDDEN');

@@ -23,12 +23,12 @@ export const heroSection: SectionDefinition = {
     imageId: null, primaryButton: { label: 'Saiba mais', url: '#sobre' }, backgroundColor: '#f4f6fa',
   },
   fields: [
-    { type: 'text', name: 'eyebrow', label: 'Texto de apoio', maxLength: 60 },
-    { type: 'text', name: 'title', label: 'Título', maxLength: 150 },
-    { type: 'textarea', name: 'body', label: 'Descrição', maxLength: 600 },
-    { type: 'image', name: 'imageId', label: 'Imagem' },
-    { type: 'button', name: 'primaryButton', label: 'Botão principal' },
+    { type: 'text', name: 'eyebrow', label: 'Texto de apoio', maxLength: 60, editableByClient: true },
+    { type: 'text', name: 'title', label: 'Título', maxLength: 150, editableByClient: true },
+    { type: 'textarea', name: 'body', label: 'Descrição', maxLength: 600, editableByClient: true },
+    { type: 'image', name: 'imageId', label: 'Imagem', editableByClient: true },
+    { type: 'button', name: 'primaryButton', label: 'Botão principal', editableByClient: true },
     { type: 'color', name: 'backgroundColor', label: 'Cor de fundo' },
   ],
-  editableByClient: ['eyebrow', 'title', 'body', 'imageId', 'primaryButton'],
+  editableByClient: ['eyebrow', 'title', 'body', 'imageId', 'primaryButton'], clientCanHide: true,
 };

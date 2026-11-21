@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
-import { sectionRegistry } from '@cms/shared';
+import { sectionRegistry } from '@cms/shared/section-registry';
 
 type Template={id:number;segment:string;name:string;kind:'page'|'section';content:unknown};
 export function Templates(){

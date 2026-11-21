@@ -29,7 +29,7 @@ async function assetUrl(id:number|null){if(!id)return null;const [rows]=await po
 export async function getPublicSite():Promise<PublicSiteData>{
   const [[themeRows],[settings],[navigation],[formRows]]=await Promise.all([
     pool.query<RowDataPacket[]>("SELECT tokens FROM theme_settings WHERE kind='published'"),
-    pool.query<RowDataPacket[]>('SELECT `key`,value FROM site_settings WHERE `key` IN (?,?,?,?)',['business','social','layout']),
+    pool.query<RowDataPacket[]>('SELECT `key`,value FROM site_settings WHERE `key` IN (?,?,?)',['business','social','layout']),
     pool.query<RowDataPacket[]>("SELECT title,slug,is_home FROM pages WHERE status='published' ORDER BY is_home DESC,title"),
     pool.query<RowDataPacket[]>('SELECT id,name,fields,success_message FROM form_definitions ORDER BY id LIMIT 20'),
   ]);

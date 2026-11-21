@@ -2,11 +2,15 @@
 
 Como usar com o Codex: **uma etapa por vez, uma branch por etapa** (`etapa-04-imagens`). Cole o prompt da etapa, revise o diff, rode os critérios de aceite e só então faça merge. Leia sempre `AGENTS.md` antes (o Codex o lê sozinho).
 
-Estado atual: Etapas 1 a 9 implementadas; Lighthouse da Etapa 8 pulado por decisÃ£o do usuÃ¡rio; build Vite da Etapa 9 pendente por restriÃ§Ã£o do ambiente. A Etapa 10 trata de seguranÃ§a final, testes e hospedagem.
+Estado atual: Etapas 1 a 9 implementadas e build/typechecks verificados; Lighthouse da Etapa 8 pulado por decisão do usuário. A Etapa 10 trata de segurança final, testes e hospedagem.
 
 Decisão D1: `packages/shared` foi criado na Etapa 5 com o schema genérico de rascunho e tipos de página compartilhados entre API e web. O registry foi concluído na Etapa 6.
 
-Implementação da Etapa 6: `packages/shared/sections` mantém o registry e os descritores de campos; o PUT do rascunho valida tipo, versão e props, verifica permissões de seção/campo e exige `baseVersionId`; a interface usa autosave e `@dnd-kit`; `modules/templates` oferece CRUD protegido e cópia de rascunho para modelo. Seeds criam modelos genéricos de páginas para advocacia, saúde e institucional. Nenhuma migration foi necessária. Para aplicar os modelos em uma instalação existente, rode `npm run seed`.
+Implementação da Etapa 6: `packages/shared/src/sections` mantém as seções-base, descritores de campos e registry; seções novas ficam em `packages/shared/src/sections/custom/` e o registry usa `import.meta.glob` via `scripts/build-section-registry.mjs`, compartilhado pelo cliente, SSR, API e seed. O PUT do rascunho valida tipo, versão e props, verifica permissões e exige `baseVersionId`; a interface usa autosave e `@dnd-kit`; `modules/templates` oferece CRUD protegido e cópia de rascunho para modelo. Seeds criam modelos genéricos de páginas para advocacia, saúde e institucional. Nenhuma migration foi necessária. Para aplicar permissões/modelos em uma instalação existente, rode `npm run seed`.
+
+Contrato de seção custom: exportar `type`, `label`, `schemaVersion`, `propsSchema`, `defaultProps`, `fields`, `clientCanHide` e `PublicSection`. Todo campo informa `editableByClient`; listas informam `itemSchema`, `min`, `max`, `clientCanAdd`, `clientCanRemove` e `clientCanReorder`. Seção e item de lista recebem UUID estável. Conteúdo legado sem IDs é normalizado de modo determinístico durante a leitura, sem regravar versões publicadas. A seção custom `services` substitui a implementação-base desse tipo e mantém conteúdo antigo convertendo `intro` em `subtitle`, adicionando ícone, IDs e `imageId` nulo.
+
+Permissões de rascunho: clientes não podem adicionar, remover ou reordenar seções; só podem mudar visibilidade quando `clientCanHide` for verdadeiro. Alterações de itens exigem `items.manage` e as flags correspondentes da lista. O servidor compara itens por ID, audita rejeições e aplica min/max também ao master. `syncMediaUsages` percorre as propriedades aninhadas, incluindo imagens em listas. O seed remove concessões antigas de `sections.manage` e registra `items.manage` para aparecer na tela de usuários.
 
 Implementação da Etapa 7: `packages/shared/theme.ts` define tokens, schema Zod e `themeToCssVars`; `modules/theme` salva rascunho, publica, restaura padrão e deixa o master definir grupos liberados ao cliente. Assets registram uso de mídia. O preview do painel e a página inicial aplicam as variáveis do tema publicado. O seed registra `theme_client_groups` vazio por padrão; rode `npm run seed` em instalações existentes.
 
@@ -212,4 +216,25 @@ Componentes iniciais: header, hero, about, services, specialties, team, differen
 
 A Etapa 8 segue com o Lighthouse pulado a pedido do usuário; nenhuma nota foi atribuída. A Etapa 9 foi implementada sem nova migration, pois as tabelas necessárias já existem. Foram adicionados SEO no SSR, sitemap e robots, JSON-LD por segmento, gestão de configurações, construtor master de formulários, formulário público com consentimento obrigatório, honeypot, limite por IP e hash de IP, além da caixa de entrada com exportação CSV e exclusão protegida. As definições de formulário são master-only; leitura da caixa usa `forms.view`. O envio SMTP opcional ainda não foi ativado; mensagens são salvas no banco.
 
-Verificações: typecheck da API e da web passaram; a seed foi aplicada; aceitação manual confirmou consentimento obrigatório (400), honeypot silencioso sem persistência (200), submissão válida persistida (201), rotas privadas protegidas (401), sitemap sem rascunhos/noindex e diretivas de robots. Dados temporários foram removidos. `npm run build` compilou shared e API, e passou pelo typecheck do front, mas o Vite não conseguiu ler um diretório ancestral (`Access is denied`) no ambiente de execução; por isso a etapa fica implementada, com build final pendente.
+Verificações: typecheck da API e da web, seed, build completo e aceitação manual passaram. A falha anterior ao carregar o config Vite foi resolvida importando a configuração como módulo e usando a API programática do Vite com `configFile:false`. Aceites: consentimento obrigatório (400), honeypot silencioso sem salvar (200), envio válido salvo (201), rotas privadas (401), sitemap/robots e dados temporários removidos.
+
+## Complemento — registry custom e permissões de lista (2026-11-20)
+
+O build agora gera `packages/shared/dist/custom-registry.vite.js` com Vite antes da API, do SSR, do cliente e do seed. O glob descobre arquivos de `packages/shared/src/sections/custom/`; a seção `services` é a implementação de referência com título, subtítulo, lista de ícone/título/descrição e imagem opcional. Nenhum componente do editor ou SSR precisa ser alterado ao adicionar outro arquivo custom.
+
+O teste isolado do normalizador confirmou IDs determinísticos para seções e itens antigos de `services`/`about`, preservação de texto e visibilidade e nenhuma mutação do conteúdo de origem.
+
+Aceites executados contra API e MySQL temporários:
+
+| Caso | Resultado |
+|---|---|
+| (a) cliente com `items.manage` adiciona e remove serviço | passou: HTTP 200 nas duas gravações |
+| (b) cliente sem `items.manage` altera a lista estruturalmente | passou: HTTP 403 |
+| (c) cliente altera campo travado | passou: HTTP 403 |
+| (d) cliente adiciona, remove ou reordena seções | passou: HTTP 403 em cada tentativa |
+| (e) master altera campos e estrutura | passou: HTTP 200 |
+| (f) SSR, visibilidade, SEO/JSON-LD e entry cliente | SSR passou; seção invisível omitida e entry `main.tsx` entregue. O teste headless do navegador não concluiu, então warnings de hidratação não foram verificados em navegador nesta sessão. |
+| (g) imagem em item da lista não pode ser excluída | passou: HTTP 409 |
+| (h) `max=12` para master | passou: HTTP 400 para 13 itens |
+
+O tipo atual de campo não inclui rich text e o repositório não contém sanitizador HTML. Os campos de texto permanecem texto simples, escapado pelo React; nenhuma saída HTML crua foi adicionada. JSON-LD e metas SEO foram conferidos no HTML SSR. Os dados de usuários, páginas e mídia dos testes foram removidos.

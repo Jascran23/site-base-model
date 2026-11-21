@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build && vite build --ssr src/entry-server.tsx --outDir dist/server --emptyOutDir false",
+    "dev": "node ../../scripts/dev-web.mjs",
+    "build": "tsc --noEmit && node ../../scripts/build-web.mjs",
     "preview": "vite preview",
     "typecheck": "npm run build -w @cms/shared && tsc --noEmit"
   },

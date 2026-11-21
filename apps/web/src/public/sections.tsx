@@ -2,10 +2,13 @@ import type { PageDraft, SectionInstance } from '@cms/shared';
 import { useState, type FormEvent } from 'react';
 import type { FormField } from '@cms/shared';
 import { api } from '../lib/api';
+import { getSectionDefinition } from '@cms/shared/section-registry';
 
 export interface PublicMediaMeta { width:number; height:number; thumbUrl:string; alt:string }
 export function SectionRenderer({ section, mediaUrls = {}, mediaMeta = {}, contactForm }: { section: SectionInstance; mediaUrls?: Record<number, string>; mediaMeta?:Record<number,PublicMediaMeta>; contactForm?:{id:number;name:string;fields:FormField[];successMessage:string} }) {
-  if (section.hidden) return null;
+  if (section.hidden || section.visible === false) return null;
+  const CustomSection = getSectionDefinition(section.type)?.component;
+  if (CustomSection) return <CustomSection section={section} mediaUrls={mediaUrls}/>;
   const p = section.props;
   const imageId=typeof p.imageId==='number'?p.imageId:null;const image=imageId!==null?mediaUrls[imageId]:undefined;const meta=imageId!==null?mediaMeta[imageId]:undefined;
   const imageProps=meta?{width:meta.width,height:meta.height,alt:meta.alt,srcSet:`${meta.thumbUrl} 400w, ${image} ${meta.width}w`,sizes:'(max-width: 768px) 100vw, 50vw'}:{alt:''};

@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./section-registry": {
+      "types": "./dist/sections/custom-registry.d.ts",
+      "import": "./dist/custom-registry.vite.js",
+      "default": "./dist/custom-registry.vite.js"
     }
   },
   "scripts": {
@@ -17,5 +22,9 @@
   },
   "dependencies": {
     "zod": "^3.23.8"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "lucide-react": "^0.454.0"
   }
 }

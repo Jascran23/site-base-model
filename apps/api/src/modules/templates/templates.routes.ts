@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { pageDraftSchema, sectionInstanceSchema } from '@cms/shared';
+import { pageDraftSchema, sectionInstanceSchema } from '@cms/shared/section-registry';
 import { pool } from '../../db/pool.js';
 import { asyncHandler, HttpError } from '../../lib/errors.js';
 import { audit } from '../../lib/audit.js';
 import { requireAuth, requirePermission } from '../../middleware/auth.js';
+import { pageDraftFromDb } from '../pages/pages.service.js';
 
 export const templatesRouter = Router();
 templatesRouter.use(requireAuth);
@@ -40,7 +41,7 @@ templatesRouter.delete('/:id',requirePermission('templates.manage'),asyncHandler
 templatesRouter.post('/from-page/:id',requirePermission('templates.manage'),asyncHandler(async(req,res)=>{
   const id=idSchema.parse(req.params.id);const input=z.object({segment:z.enum(['advocacia','saude','institucional','custom']),name:z.string().trim().min(2).max(120)}).strict().parse(req.body);
   const [rows]=await pool.query<RowDataPacket[]>("SELECT content FROM page_versions WHERE page_id=? AND kind='draft' ORDER BY id DESC LIMIT 1",[id]);if(!rows[0])throw new HttpError(404,'Rascunho não encontrado.');
-  const content=pageDraftSchema.parse(typeof rows[0].content==='string'?JSON.parse(rows[0].content):rows[0].content);
+  const content=pageDraftFromDb(rows[0].content);
   const [result]=await pool.query<ResultSetHeader>('INSERT INTO templates (segment,name,kind,content) VALUES (?,? ,\'page\',?)',[input.segment,input.name,JSON.stringify(content)]);
   await audit(req,'template.from_page','template',result.insertId,{page_id:id,name:input.name});res.status(201).json({id:result.insertId});
 }));

@@ -12,10 +12,10 @@ Projeto-base reutilizável: **uma instalação independente por cliente** (site,
 | 3 | Dashboard administrativo | ✅ base pronta (contagens, recentes, atividades) |
 | 4 | Biblioteca de imagens | ✅ pronta e testada |
 | 5 | Páginas | ✅ pronta e testada |
-| 6 | Editor de seções e modelos | ✅ implementada (4 seções de referência) |
+| 6 | Editor de seções e modelos | ✅ implementada; seções custom em `packages/shared/src/sections/custom/` |
 | 7 | Personalização de tema | ✅ implementada |
 | 8 | Site público dinâmico | ✅ SSR implementado; Lighthouse pulado por decisão do usuário |
-| 9 | SEO, formulários, configurações | ⚙️ implementada; typechecks e aceitação manual passaram; build Vite pendente por restrição do ambiente |
+| 9 | SEO, formulários, configurações | ✅ implementada; typechecks, build e aceitação manual passaram |
 | 10 | Segurança final, testes, hospedagem | ⏳ |
 
 ## Estrutura
@@ -32,6 +32,7 @@ apps/web/src
   public/              componentes públicos e hidratação SSR
   lib/                 api (fetch + CSRF), auth (contexto)
 packages/shared        schemas e tipos compartilhados entre API e web
+  src/sections/custom/ seções custom detectadas pelo registry Vite
 storage/uploads        arquivos enviados (fora do webroot)
 docs/INSTALACAO.md
 ```

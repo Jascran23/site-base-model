@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --exclude ../web/** src/server.ts",
-    "build": "tsc -p tsconfig.json",
+    "dev": "npm run build:section-registry && tsx watch --exclude ../web/** src/server.ts",
+    "build:section-registry": "node ../../scripts/build-section-registry.mjs",
+    "build": "npm run build -w @cms/shared && npm run build:section-registry && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "migrate": "tsx src/db/migrate.ts",
-    "seed": "npm run build -w @cms/shared && tsx src/db/seed.ts",
+    "seed": "npm run build && node dist/db/seed.js",
     "install:master": "tsx src/scripts/create-master.ts",
-    "typecheck": "npm run build -w @cms/shared && tsc --noEmit"
+    "typecheck": "npm run build -w @cms/shared && npm run build:section-registry && tsc --noEmit"
   },
   "dependencies": {
     "@cms/shared": "*",

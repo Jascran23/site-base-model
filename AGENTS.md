@@ -38,6 +38,9 @@ Projeto-base de site institucional com CMS próprio. **Uma instalação independ
 - Mudança de schema = nova migration `NNN_nome.sql` em `apps/api/src/db/migrations`. **Nunca edite migrations já aplicadas.**
 - Respostas de erro em português, sem vazar detalhes internos em produção.
 - Evite dependências externas em runtime (CDNs, fontes remotas).
+- Seções custom ficam em `packages/shared/src/sections/custom/`. Cada arquivo `.tsx` exporta `type`, `label`, `schemaVersion`, `propsSchema`, `defaultProps`, `fields`, `clientCanHide` e `PublicSection`. O registry descobre esses arquivos com `import.meta.glob`; não use `fs` para enumerar ou ler a pasta.
+- Listas descrevem `itemSchema`, `min`, `max`, `clientCanAdd`, `clientCanRemove` e `clientCanReorder`. Cada seção e item tem ID estável; IDs antigos são normalizados na leitura.
+- Clientes não alteram a estrutura das seções. `items.manage` controla mudanças estruturais das listas, sempre respeitando as flags da lista. `editableByClient` é validado no back-end.
 
 ## Definição de pronto de uma etapa
 - `typecheck` e `build` passam.
@@ -46,4 +49,4 @@ Projeto-base de site institucional com CMS próprio. **Uma instalação independ
 - Nenhum segredo ou arquivo de upload no diff.
 
 ## Estado atual
-Etapas 1 a 3 prontas (banco, auth, permissões, dashboard base). Próxima: Etapa 4.
+Etapas 1 a 9 implementadas. As extensões de seção seguem o contrato acima e a Etapa 10 é a próxima do roadmap. Antes do typecheck/build da API, gere o registry compilado com `npm run build:section-registry -w apps/api`; os comandos `dev:api`, `dev:web`, `seed` e `build` fazem isso automaticamente.

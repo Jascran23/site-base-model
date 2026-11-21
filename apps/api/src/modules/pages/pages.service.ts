@@ -1,8 +1,8 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { env } from '../../config/env.js';
 import { HttpError } from '../../lib/errors.js';
-import { pageDraftSchema, type PageDraft } from '@cms/shared';
+import { pageDraftSchema, sectionRegistry, type PageDraft } from '@cms/shared/section-registry';
 
 const RESERVED_SLUGS = new Set(['admin', 'api', 'uploads', 'sitemap.xml', 'robots.txt', 'sitemapxml', 'robotstxt']);
 const previewPayloadSchema = z.object({ pageId: z.number().int().positive(), versionId: z.number().int().positive(), exp: z.number().int().positive() }).strict();
@@ -17,15 +17,72 @@ export function normalizeSlug(value: string) {
   return slug;
 }
 
-export function pageDraftFromDb(value: unknown): PageDraft {
+function deterministicUuid(seed: string) {
+  const hex = createHash('sha256').update(seed).digest('hex').slice(0, 32).split('');
+  hex[12] = '5'; hex[16] = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+  const value = hex.join('');
+  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+}
+
+function normalizeLegacyContent(value: unknown) {
   let content = value;
   if (typeof content === 'string') {
     try { content = JSON.parse(content); }
     catch { throw new HttpError(500, 'O rascunho salvo está inválido.', 'INVALID_STORED_DRAFT'); }
   }
-  const parsed = pageDraftSchema.safeParse(content);
+  if (!content || typeof content !== 'object' || !Array.isArray((content as { sections?: unknown }).sections)) return content;
+  const sections = (content as { sections: unknown[] }).sections;
+  const legacyKey = createHash('sha256').update(JSON.stringify(content)).digest('hex');
+  const normalized = sections.map((raw, sectionIndex) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+    const section = { ...(raw as Record<string, unknown>) };
+    const type = String(section.type ?? '');
+    const sectionId = typeof section.id === 'string' && z.string().uuid().safeParse(section.id).success
+      ? section.id : deterministicUuid(`${legacyKey}:section:${sectionIndex}:${type}`);
+    const props = section.props && typeof section.props === 'object' && !Array.isArray(section.props)
+      ? { ...(section.props as Record<string, unknown>) } : {};
+    if (type === 'services' && Number(section.schemaVersion ?? 1) < 2) {
+      const oldItems = Array.isArray(props.items) ? props.items : [];
+      props.subtitle = typeof props.intro === 'string' ? props.intro : '';
+      delete props.intro;
+      props.items = oldItems.map((item, itemIndex) => {
+        const old = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+        return { ...old, id: old.id ?? deterministicUuid(`${legacyKey}:${sectionId}:items:${itemIndex}`), icon: old.icon ?? 'briefcase', imageId: old.imageId ?? null };
+      });
+      section.schemaVersion = 2;
+    }
+    const definition = sectionRegistry[type];
+    for (const field of definition?.fields ?? []) if (field.type === 'list' && Array.isArray(props[field.name])) {
+      props[field.name] = (props[field.name] as unknown[]).map((item, itemIndex) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
+        const row = item as Record<string, unknown>;
+        return { ...row, id: typeof row.id === 'string' && z.string().uuid().safeParse(row.id).success
+          ? row.id : deterministicUuid(`${legacyKey}:${sectionId}:${field.name}:${itemIndex}`) };
+      });
+    }
+    const result: Record<string, unknown> = { ...section, id: sectionId, props };
+    if (result.visible === undefined && typeof section.hidden === 'boolean') result.visible = !section.hidden;
+    delete result.hidden;
+    return result;
+  });
+  return { ...(content as Record<string, unknown>), sections: normalized };
+}
+
+export function pageDraftFromDb(value: unknown): PageDraft {
+  const parsed = pageDraftSchema.safeParse(normalizeLegacyContent(value));
   if (!parsed.success) throw new HttpError(500, 'O rascunho salvo está inválido.', 'INVALID_STORED_DRAFT');
   return parsed.data;
+}
+
+export function clonePageDraftWithNewIds(content: PageDraft): PageDraft {
+  return { sections: content.sections.map((section) => {
+    const definition = sectionRegistry[section.type];
+    const props = structuredClone(section.props);
+    for (const field of definition?.fields ?? []) if (field.type === 'list' && Array.isArray(props[field.name])) {
+      props[field.name] = (props[field.name] as Record<string, unknown>[]).map((item) => ({ ...item, id: randomUUID() }));
+    }
+    return { ...section, id: randomUUID(), props };
+  }) };
 }
 
 function numericMediaId(value: unknown): number | null {
